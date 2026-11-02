@@ -1253,9 +1253,19 @@ async function boardRefresh(){
   if(!data.success)throw Error(data.error||'Leaderboard unavailable');
   const tbody=$('boardRows').querySelector('tbody');tbody.replaceChildren();
   const scores=data[category]||[];
+  // Only reveal milliseconds when multiple racers share the same displayed hundredth.
+  const displayedTimeCounts=new Map();
+  for(const entry of scores){
+   const key=format(Number(entry.timeMs)/1000);
+   displayedTimeCounts.set(key,(displayedTimeCounts.get(key)||0)+1);
+  }
   for(const entry of scores){
    const tr=document.createElement('tr');
-   for(const value of [entry.rank,entry.player,format(entry.timeMs/1000),entry.date]){
+   const standardTime=format(Number(entry.timeMs)/1000);
+   const ms=Math.round(Number(entry.timeMs));
+   const detailedTime=String(Math.floor(ms/60000)).padStart(2,'0')+':'+String(Math.floor(ms/1000)%60).padStart(2,'0')+'.'+String(ms%1000).padStart(3,'0');
+   const shownTime=displayedTimeCounts.get(standardTime)>1?detailedTime:standardTime;
+   for(const value of [entry.rank,entry.player,shownTime,entry.date]){
     const td=document.createElement('td');td.textContent=String(value);tr.appendChild(td);
    }
    tbody.appendChild(tr);
