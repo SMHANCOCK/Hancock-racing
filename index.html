@@ -1253,25 +1253,9 @@ async function boardRefresh(){
   if(!data.success)throw Error(data.error||'Leaderboard unavailable');
   const tbody=$('boardRows').querySelector('tbody');tbody.replaceChildren();
   const scores=data[category]||[];
-  // Only reveal milliseconds when multiple racers share the same displayed hundredth.
-  const displayedTimeCounts=new Map();
-  for(const entry of scores){
-   const key=format(Number(entry.timeMs)/1000);
-   displayedTimeCounts.set(key,(displayedTimeCounts.get(key)||0)+1);
-  }
   for(const entry of scores){
    const tr=document.createElement('tr');
-   const standardTime=format(Number(entry.timeMs)/1000);
-   const ms=Math.round(Number(entry.timeMs));
-   const detailedTime=String(Math.floor(ms/60000)).padStart(2,'0')+':'+String(Math.floor(ms/1000)%60).padStart(2,'0')+'.'+String(ms%1000).padStart(3,'0');
-   // Reveal a fourth decimal only when the server supplies sub-millisecond precision.
-   // Never fabricate extra precision from integer-millisecond records.
-   const sameHundredth=displayedTimeCounts.get(standardTime)>1;
-   const sameMillisecond=scores.filter(other=>format(Number(other.timeMs)/1000)===standardTime&&Math.round(Number(other.timeMs))===ms).length>1;
-   const hasSubMillisecond=scores.some(other=>format(Number(other.timeMs)/1000)===standardTime&&Math.abs(Number(other.timeMs)-Math.round(Number(other.timeMs)))>0.000001);
-   const fourDecimalTime=String(Math.floor(Number(entry.timeMs)/60000)).padStart(2,'0')+':'+String(Math.floor(Number(entry.timeMs)/1000)%60).padStart(2,'0')+'.'+String(Math.round((Number(entry.timeMs)%1000)*10)).padStart(4,'0');
-   const shownTime=sameMillisecond&&hasSubMillisecond?fourDecimalTime:(sameHundredth?detailedTime:standardTime);
-   for(const value of [entry.rank,entry.player,shownTime,entry.date]){
+   for(const value of [entry.rank,entry.player,format(entry.timeMs/1000),entry.date]){
     const td=document.createElement('td');td.textContent=String(value);tr.appendChild(td);
    }
    tbody.appendChild(tr);
