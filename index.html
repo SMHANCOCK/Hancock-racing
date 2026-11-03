@@ -822,7 +822,44 @@ if(ACTIVE_TRACK==='sunset'){
 for(let i=0;i<100;i++){let t=i/100,f=frame(t),p=f.p.clone().addScaledVector(f.normal,0);let mark=mesh(new THREE.BoxGeometry(.26,.025,2.2),white,p.x,-.045,p.z);mark.rotation.y=Math.atan2(f.tan.x,f.tan.z)}
 // Start line checkered tiles.
 {let f=frame(0);const tiles=ACTIVE_TRACK==='cliff'?14:20;for(let a=0;a<tiles;a++)for(let b=0;b<2;b++){let lateral=(a-(tiles-1)/2)*(ACTIVE_TRACK==='cliff'?1.64:1.65);let p=f.p.clone().addScaledVector(f.normal,lateral).addScaledVector(f.tan,(b-.5)*1.1);let o=mesh(new THREE.BoxGeometry(1.64,.03,1.1),(a+b)%2?white:mat(0x202c34),p.x,-.025,p.z);o.rotation.y=Math.atan2(f.tan.x,f.tan.z)}}
-function rand(seed){let v=Math.sin(seed*127.1+78.23)*43758.5453;return v-Math.floor(v)}function tree(x,z,s,k){if(!clearOfBillboards(x,z,2.3*s+1.5))return;let trunk=mesh(new THREE.CylinderGeometry(.28*s,.45*s,3*s,5),wood,x,1.3*s,z);trunk.castShadow=true;let cone=mesh(new THREE.ConeGeometry(2.3*s,6*s,6),treeGreen[k%3],x,5*s,z);cone.castShadow=true}if(ACTIVE_TRACK==='sunset'){for(let i=0;i<210;i++){let t=i/210,f=frame(t);for(let side of [-1,1]){if(rand(i*3+side)> .48){let dist=WIDTH/2+9+rand(i*5+side)*32;let p=f.p.clone().addScaledVector(f.normal,side*dist);tree(p.x,p.z,.65+rand(i*7+side)*.9,i)}}}for(let i=0;i<26;i++){let angle=i*2.399,rad=165+rand(i+17)*65;let rock=mesh(new THREE.DodecahedronGeometry(4+rand(i+22)*8,0),mat(i%2?0xb0a080:0x92a090),Math.cos(angle)*rad,2,Math.sin(angle)*rad);rock.scale.y=.7}}else if(ACTIVE_TRACK==='london'){
+function rand(seed){let v=Math.sin(seed*127.1+78.23)*43758.5453;return v-Math.floor(v)}function tree(x,z,s,k){if(!clearOfBillboards(x,z,2.3*s+1.5))return;let trunk=mesh(new THREE.CylinderGeometry(.28*s,.45*s,3*s,5),wood,x,1.3*s,z);trunk.castShadow=true;let cone=mesh(new THREE.ConeGeometry(2.3*s,6*s,6),treeGreen[k%3],x,5*s,z);cone.castShadow=true}if(ACTIVE_TRACK==='sunset'){for(let i=0;i<210;i++){let t=i/210,f=frame(t);for(let side of [-1,1]){if(rand(i*3+side)> .48){let dist=WIDTH/2+9+rand(i*5+side)*32;let p=f.p.clone().addScaledVector(f.normal,side*dist);tree(p.x,p.z,.65+rand(i*7+side)*.9,i)}}}for(let i=0;i<26;i++){let angle=i*2.399,rad=165+rand(i+17)*65;let rock=mesh(new THREE.DodecahedronGeometry(4+rand(i+22)*8,0),mat(i%2?0xb0a080:0x92a090),Math.cos(angle)*rad,2,Math.sin(angle)*rad);rock.scale.y=.7}
+// v11.7 — Sunset Circuit scenic-only tyre stacks and hot-air balloon.
+// Positioned beyond the road edge; no collision, racing physics or track changes.
+{
+ const rubber=new THREE.MeshStandardMaterial({color:0x17191b,roughness:.94,flatShading:true});
+ const sidewall=new THREE.MeshStandardMaterial({color:0x282a2c,roughness:.95});
+ const tyreGeo=new THREE.TorusGeometry(1.35,.53,7,12);
+ const sideGeo=new THREE.TorusGeometry(1.05,.14,5,12);
+ for(const [t,side,offset,rows] of [[.08,-1,45,3],[.115,-1,51,3],[.47,1,46,2],[.505,1,52,3]]){
+   const f=frame(t),p=f.p.clone().addScaledVector(f.normal,side*offset);
+   for(let row=0;row<rows;row++)for(let level=0;level<3+(row%2);level++){
+     const x=p.x+f.tan.x*(row-1)*3.1,z=p.z+f.tan.z*(row-1)*3.1;
+     const tyre=new THREE.Mesh(tyreGeo,rubber);
+     tyre.rotation.x=Math.PI/2;tyre.position.set(x,.55+level*.94,z);tyre.castShadow=true;scene.add(tyre);
+     const ring=new THREE.Mesh(sideGeo,sidewall);ring.rotation.x=Math.PI/2;ring.position.set(x,.55+level*.94+.02,z);scene.add(ring);
+   }
+ }
+ const balloon=new THREE.Group();
+ const panels=[0xc52d37,0xf5b948,0x354d86,0xf1dfaa,0x8a384f,0xf5b948];
+ const balloonGeo=new THREE.SphereGeometry(1,12,10);
+ for(let i=0;i<6;i++){
+   const material=new THREE.MeshStandardMaterial({color:panels[i],roughness:.85,side:THREE.DoubleSide});
+   const segment=new THREE.Mesh(new THREE.SphereGeometry(1,4,10,i*Math.PI/3,Math.PI/3),material);
+   segment.scale.set(5.2,6.6,5.2);segment.position.y=8.5;balloon.add(segment);
+ }
+ const basketMat=new THREE.MeshStandardMaterial({color:0x8b6038,roughness:1});
+ const basket=new THREE.Mesh(new THREE.BoxGeometry(2.5,2.2,2.2),basketMat);basket.position.y=-.8;balloon.add(basket);
+ const ropeMat=new THREE.MeshBasicMaterial({color:0x493728});
+ for(const x of [-1,1])for(const z of [-.85,.85]){
+   const a=new THREE.Vector3(x,0.3,z),b=new THREE.Vector3(x*2.1,5.4,z*2.1);
+   const rope=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,a.distanceTo(b),4),ropeMat);
+   rope.position.copy(a).add(b).multiplyScalar(.5);rope.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());balloon.add(rope);
+ }
+ balloon.position.set(-95,56,-165);
+ balloon.rotation.y=.35;
+ scene.add(balloon);
+}
+}else if(ACTIVE_TRACK==='london'){
 // An original low-poly night city surrounding the flowing Metro Circuit.
 const buildingMats=[mat(0x555765),mat(0x626473),mat(0x474c5a),mat(0x73717a),mat(0x414958)];
 const windowMat=mat(0xffcf7b),darkRoof=mat(0x343a47),lampMat=new THREE.MeshBasicMaterial({color:0xffdf91});
