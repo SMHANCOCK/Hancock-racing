@@ -604,11 +604,27 @@ if(ACTIVE_TRACK==='cliff'){
  edgeDrop();
  // Offshore rocks and visible shark fins, kept well away from the road.
  const cliffSharks=[];
+ const cliffWaves=[];
+ const waveGeo=new THREE.TorusGeometry(1,.095,4,28);
+ const waveMat=new THREE.MeshBasicMaterial({color:0xe8fbff,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide});
  const finGeo=new THREE.ConeGeometry(1.65,4.3,3);
  for(let i=0;i<26;i++){
    const f=frame(i/26),p=f.p.clone().addScaledVector(f.normal,-WIDTH/2-18-(i%4)*8);
    const b=new THREE.Mesh(new THREE.DodecahedronGeometry(2.6+(i%3)*1.4,0),i%2?rockDark:rockMid);
    b.position.set(p.x,-12.7,p.z);b.scale.y=.7;scene.add(b);
+   // Three staggered foam fronts pulse out from each rock at sea level.
+   for(let w=0;w<3;w++){
+     const ring=new THREE.Mesh(waveGeo,waveMat.clone());
+     ring.rotation.x=-Math.PI/2;ring.position.set(p.x,-14.02+w*.012,p.z);
+     ring.scale.setScalar(1);ring.renderOrder=5;scene.add(ring);
+     cliffWaves.push({ring,phase:(i*.37+w/3)%1,rate:.38+(i%5)*.025});
+   }
+   // A small intermittent whitewater splash on the seaward face.
+   if(i%2===0)for(let j=0;j<3;j++){
+     const splash=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,0),waveMat.clone());
+     splash.position.set(p.x+(j-1)*.85,-13.8,p.z-1.5);scene.add(splash);
+     cliffWaves.push({splash,base:splash.position.clone(),phase:(i*.19+j/3)%1,rate:.55});
+   }
    if(i%2===0){
      // Moving shark fins skim the surface rather than sitting stationary like rocks.
      const group=new THREE.Group();group.position.set(p.x-5,-14.1,p.z+4);scene.add(group);
@@ -619,6 +635,7 @@ if(ACTIVE_TRACK==='cliff'){
    }
  }
  window.cliffSharks=cliffSharks;
+ window.cliffWaves=cliffWaves;
  // Tiny cliff-top puffins using the puffin artwork embedded in our actual logo.
  // Sprite texture is prepared once and shared by all birds.
  const puffinCanvas=document.createElement('canvas');
@@ -1396,7 +1413,16 @@ p.prevT=p.t;if(!p.cliffFalling)placeVehicle(p); // Smooth visual body lean; no i
 updateParticles(dt,p);updateCurbDust(dt,p);p.group.rotation.z=lerp(p.group.rotation.z,-p.skid*.16-ctl.steer*.035,1-Math.exp(-dt*7));p.exhaust.visible=p.boost>0||p.reserve>0;
 for(let i=0;i<ais.length;i++){let a=ais[i];if(mode!=='race')continue;a.speed=lerp(a.speed,47*a.skill+5*Math.sin(raceTime*.2+i),dt*1.8);let old=a.t;a.t=(a.t+a.speed*dt/approxLength(a.t))%1;a.offset=lerp(a.offset,Math.sin(a.t*TAU*3+i*2)*2.3,dt*.65);if(old>.9&&a.t<.1)a.lap++;placeVehicle(a)}for(let a of ais){if(mode!=='race')continue;let delta=p.group.position.distanceTo(a.group.position);if(delta<2.6&&delta>0){p.speed*=.985;p.offset+=Math.sign(p.offset-a.offset||1)*dt*5}}
 let rank=1+ais.filter(a=>mode==='race'&&a.lap-1+a.t>completedLaps+p.t).length;$('position').textContent=mode==='race'?rank+' / 4':'SOLO';$('lap').textContent=Math.min(p.lap,3)+' / 3';$('timer').textContent=format(raceTime);$('best').textContent=format(p.best);$('speed').innerHTML=Math.round(Math.abs(p.speed)*1.65)+'<small> KM/H</small>';$('fill').style.width=p.charge+'%';$('boostText').textContent=p.drifting?(p.charge>=100?' MAX RED - LIFT!' :p.charge>83?' RED - GAS = PENALTY!':p.charge>=68?' BLUE - EXIT NOW!':' CHARGING'):'READY';$('chain').textContent='EXIT IN BLUE = BOOST · GAS IN RED = PENALTY';$('status').textContent=offroad?'OFF ROAD - STEER BACK!':p.boost>0||p.reserve>0?'TURBO ACTIVE':p.drifting?(p.overheated?'RED SPARKS - SLOWDOWN!':p.spinPressure>.65?'RUNNING WIDE - COUNTERSTEER!':'SKIDDING - COUNTERSTEER!'):p.wrongWayTime>0?'WRONG WAY - RESET IN '+Math.max(0,2-p.wrongWayTime).toFixed(1)+'S':p.gripStress>.65?'REAR SLIDING - LIFT OFF!':p.gripStress>.28?'GRIP FADING - EASE OFF!':ctl.brake?(p.speed<-.5?'REVERSING':'BRAKING'):ctl.gas?'FULL THROTTLE':'COASTING';if(flashTimeout>0){flashTimeout-=dt;if(flashTimeout<=0)$('flash').classList.remove('show')}}
-function approxLength(t){let a=spline(t-.0005),b=spline(t+.0005);return a.distanceTo(b)*1000}function draw(dt){if(ACTIVE_TRACK==='cliff'&&window.cliffSharks){const t=performance.now()*.001;for(const shark of window.cliffSharks){const a=t*shark.speed+shark.phase;shark.group.position.x=shark.origin.x+Math.cos(a)*5;shark.group.position.z=shark.origin.z+Math.sin(a)*5;shark.group.position.y=shark.origin.y+Math.sin(a*2)*.22;shark.group.rotation.y=a+Math.PI/2}}let p=player;let heading=new THREE.Vector3(Math.sin(p.group.rotation.y),0,Math.cos(p.group.rotation.y));
+function approxLength(t){let a=spline(t-.0005),b=spline(t+.0005);return a.distanceTo(b)*1000}function draw(dt){
+if(ACTIVE_TRACK==='cliff'&&window.cliffWaves){
+ const t=performance.now()*.001;
+ for(const w of window.cliffWaves){
+  const a=(t*w.rate+w.phase)%1;
+  if(w.ring){w.ring.scale.setScalar(1.5+a*5.8);w.ring.material.opacity=.68*Math.sin(Math.PI*a);w.ring.visible=a>.02&&a<.98}
+  else{w.splash.position.copy(w.base);w.splash.position.y+=Math.sin(Math.PI*a)*1.8;w.splash.scale.setScalar(.35+Math.sin(Math.PI*a)*.8);w.splash.material.opacity=.72*Math.sin(Math.PI*a)}
+ }
+}
+if(ACTIVE_TRACK==='cliff'&&window.cliffSharks){const t=performance.now()*.001;for(const shark of window.cliffSharks){const a=t*shark.speed+shark.phase;shark.group.position.x=shark.origin.x+Math.cos(a)*5;shark.group.position.z=shark.origin.z+Math.sin(a)*5;shark.group.position.y=shark.origin.y+Math.sin(a*2)*.22;shark.group.rotation.y=a+Math.PI/2}}let p=player;let heading=new THREE.Vector3(Math.sin(p.group.rotation.y),0,Math.cos(p.group.rotation.y));
 if(ACTIVE_TRACK==='cliff'&&p.cliffFalling>0){
  // Keep the camera above the road looking outward at the falling kart.
  // Following the kart underground made the landscape clip across the screen.
