@@ -445,7 +445,24 @@ document.getElementById('chooseSunset').onclick=()=>chooseTrack('sunset');
 document.getElementById('chooseLondon').onclick=()=>chooseTrack('london');
 document.getElementById('chooseCliff').onclick=()=>chooseTrack('cliff');
 setTrackSelection();
-const scene=new THREE.Scene();scene.background=new THREE.Color(ACTIVE_TRACK==='london'?0x202c45:ACTIVE_TRACK==='cliff'?0x91b8c4:0x83c8dc);scene.fog=new THREE.Fog(ACTIVE_TRACK==='london'?0x273249:ACTIVE_TRACK==='cliff'?0x91b8c4:0x83c8dc,110,330);const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.prepend(renderer.domElement);const camera=new THREE.PerspectiveCamera(67,innerWidth/innerHeight,.1,550);scene.add(new THREE.HemisphereLight(0xffffff,0x537452,2.1));const sun=new THREE.DirectionalLight(0xffebbf,2.4);sun.position.set(-75,120,40);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-180;sun.shadow.camera.right=180;sun.shadow.camera.top=180;sun.shadow.camera.bottom=-180;scene.add(sun);
+const scene=new THREE.Scene();scene.background=new THREE.Color(ACTIVE_TRACK==='london'?0x202c45:ACTIVE_TRACK==='cliff'?0x91b8c4:0x83c8dc);scene.fog=new THREE.Fog(ACTIVE_TRACK==='london'?0x273249:ACTIVE_TRACK==='cliff'?0x91b8c4:0x83c8dc,110,330);const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.prepend(renderer.domElement);const camera=new THREE.PerspectiveCamera(67,innerWidth/innerHeight,.1,550);const isSunset=ACTIVE_TRACK==='sunset';
+const ambient=new THREE.HemisphereLight(isSunset?0xffdfc0:0xffffff,isSunset?0x786b65:0x537452,isSunset?1.85:2.1);scene.add(ambient);
+const sun=new THREE.DirectionalLight(isSunset?0xffac63:0xffebbf,isSunset?2.65:2.4);sun.position.set(isSunset?-115:-75,isSunset?38:120,isSunset?-90:40);
+if(isSunset){
+ // A camera-centred gradient skydome: visual-only golden hour, with no track or physics changes.
+ const sky=new THREE.Mesh(new THREE.SphereGeometry(450,32,16),new THREE.ShaderMaterial({
+  side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{},
+  vertexShader:'varying vec3 vSky; void main(){vSky=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:'varying vec3 vSky;void main(){float h=normalize(vSky).y;vec3 horizon=vec3(1.0,.67,.43);vec3 pink=vec3(.84,.49,.59);vec3 upper=vec3(.43,.48,.72);vec3 c=mix(horizon,pink,smoothstep(-.08,.33,h));c=mix(c,upper,smoothstep(.28,.95,h));float glow=pow(max(dot(normalize(vSky),normalize(vec3(-.74,.20,-.56))),0.0),18.0);c+=vec3(1.0,.55,.20)*glow*.38;gl_FragColor=vec4(c,1.0);}'
+ }));sky.frustumCulled=false;sky.renderOrder=-1000;scene.add(sky);
+ scene.fog.color.set(0xd5a48e);scene.fog.near=135;scene.fog.far=370;
+ const sunDisc=new THREE.Mesh(new THREE.SphereGeometry(9,16,12),new THREE.MeshBasicMaterial({color:0xffe6a1,fog:false,depthWrite:false}));
+ sunDisc.position.set(-280,72,-215);scene.add(sunDisc);
+ // Keep the horizon and sky attached to the camera as it follows the kart.
+ sky.onBeforeRender=()=>{sky.position.copy(camera.position);sunDisc.position.set(camera.position.x-280,72,camera.position.z-215)};
+}
+sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-180;sun.shadow.camera.right=180;sun.shadow.camera.top=180;sun.shadow.camera.bottom=-180;scene.add(sun);
 const mat=(c,rough=1)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,flatShading:true});const grass=mat(ACTIVE_TRACK==='london'?0x333a45:0x72b96a),road=mat(ACTIVE_TRACK==='london'?0x333b46:0x48525a),shoulder=mat(ACTIVE_TRACK==='london'?0x60616a:0xf1db9c),white=mat(0xfff2d5),red=mat(0xe86753),treeGreen=[mat(0x3d9165),mat(0x58a66b),mat(0x2f7e5e)],wood=mat(0x856b48);
 function mesh(geo,m,x=0,y=0,z=0){let o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.receiveShadow=true;scene.add(o);return o}if(ACTIVE_TRACK==='sunset'){
  // Deterministic procedural grass texture: visual only, no terrain or collision changes.
