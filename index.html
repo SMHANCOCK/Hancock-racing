@@ -406,8 +406,13 @@ const ACTIVE_TRACK=['sunset','london','cliff'].includes(sessionStorage.getItem('
 function setTrackSelection(){const london=ACTIVE_TRACK==='london';document.getElementById('trackLabel').textContent=london?'METRO GRAND PRIX':ACTIVE_TRACK==='cliff'?'CLIFFHANGER':'SUNSET CIRCUIT'}
 const PREVIEW_KEY='hancock-track-shot-v83-';
 function loadCircuitPreviews(){
+ const cinematic={sunset:'hancock-track-art/sunset-circuit.jpg',london:'hancock-track-art/metro-grand-prix.jpg',cliff:'hancock-track-art/cliffhanger.jpg'};
  for(const [id,el] of [['sunset','shotSunset'],['london','shotMetro'],['cliff','shotCliff']]){
-  try{const shot=localStorage.getItem(PREVIEW_KEY+id);if(shot)document.getElementById(el).src=shot}catch(e){}
+  const img=document.getElementById(el);
+  if(!img)continue;
+  let fallback='';try{fallback=localStorage.getItem(PREVIEW_KEY+id)||''}catch(e){}
+  img.onerror=()=>{img.onerror=null;if(fallback)img.src=fallback;else img.removeAttribute('src')};
+  img.src=cinematic[id];
  }
 }
 loadCircuitPreviews();
