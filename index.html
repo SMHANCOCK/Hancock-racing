@@ -464,21 +464,7 @@ if(isSunset){
 }
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-180;sun.shadow.camera.right=180;sun.shadow.camera.top=180;sun.shadow.camera.bottom=-180;scene.add(sun);
 const mat=(c,rough=1)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,flatShading:true});const grass=mat(ACTIVE_TRACK==='london'?0x333a45:0x72b96a),road=mat(ACTIVE_TRACK==='london'?0x333b46:0x48525a),shoulder=mat(ACTIVE_TRACK==='london'?0x60616a:0xf1db9c),white=mat(0xfff2d5),red=mat(0xe86753),treeGreen=[mat(0x3d9165),mat(0x58a66b),mat(0x2f7e5e)],wood=mat(0x856b48);
-function mesh(geo,m,x=0,y=0,z=0){let o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.receiveShadow=true;scene.add(o);return o}if(ACTIVE_TRACK==='sunset'){
- // Deterministic procedural grass texture: visual only, no terrain or collision changes.
- const grassCanvas=document.createElement('canvas');grassCanvas.width=256;grassCanvas.height=256;
- const gc=grassCanvas.getContext('2d');gc.fillStyle='#79bb6d';gc.fillRect(0,0,256,256);
- let seed=27491;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
- for(let i=0;i<6500;i++){
-   const x=random()*256,y=random()*256,shade=random();
-   gc.strokeStyle=shade<.38?'rgba(35,91,36,.19)':shade<.75?'rgba(172,208,109,.22)':'rgba(234,225,139,.12)';
-   gc.lineWidth=.4+random()*.8;gc.beginPath();gc.moveTo(x,y);gc.lineTo(x+(random()-.5)*3,y-1-random()*5);gc.stroke();
- }
- for(let i=0;i<210;i++){gc.fillStyle=random()<.5?'rgba(48,112,44,.09)':'rgba(194,215,124,.12)';gc.beginPath();gc.ellipse(random()*256,random()*256,2+random()*8,1+random()*4,random()*6.28,0,Math.PI*2);gc.fill()}
- const grassTexture=new THREE.CanvasTexture(grassCanvas);grassTexture.wrapS=grassTexture.wrapT=THREE.RepeatWrapping;grassTexture.repeat.set(18,18);grassTexture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
- grass.map=grassTexture;grass.color.set(0xffffff);grass.needsUpdate=true;
-}
-if(ACTIVE_TRACK!=='cliff')mesh(new THREE.PlaneGeometry(700,700),grass,0,-.45,0).rotation.x=-Math.PI/2;
+function mesh(geo,m,x=0,y=0,z=0){let o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.receiveShadow=true;scene.add(o);return o}if(ACTIVE_TRACK!=='cliff')mesh(new THREE.PlaneGeometry(700,700),grass,0,-.45,0).rotation.x=-Math.PI/2;
 // Revised asymmetric circuit: tighter eastern switchback and northwest corner, with a wider 28-unit road.
 const points=ACTIVE_TRACK==='london'?
 [[0,-105],[46,-108],[91,-93],[132,-65],[146,-30],[126,2],[93,12],[75,39],[91,70],[129,84],[147,111],[130,145],[90,160],[49,145],[24,112],[-13,108],[-41,135],[-78,153],[-120,136],[-146,102],[-139,68],[-108,50],[-89,17],[-111,-13],[-148,-33],[-156,-70],[-125,-105],[-80,-121],[-39,-108]]:ACTIVE_TRACK==='cliff'?
