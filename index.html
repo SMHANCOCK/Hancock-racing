@@ -1023,6 +1023,42 @@ function emitBarrierSparks(p,side,penetration){
   q.m.material.opacity=1;q.m.visible=true;
  }
 }
+// v11.9 — pooled, visual-only dust kicked up when wheels touch Sunset kerbs.
+const curbDust=[];
+const dustGeo=new THREE.IcosahedronGeometry(.32,1);
+for(let i=0;i<48;i++){
+ const m=new THREE.Mesh(dustGeo,new THREE.MeshBasicMaterial({color:0xcbb18b,transparent:true,opacity:0,depthWrite:false}));
+ m.visible=false;m.renderOrder=4;scene.add(m);
+ curbDust.push({m,life:0,maxLife:1,vel:new THREE.Vector3()});
+}
+let curbDustTimer=0;
+function updateCurbDust(dt,p){
+ for(const d of curbDust){
+  if(d.life<=0)continue;
+  d.life-=dt;
+  if(d.life<=0){d.m.visible=false;continue}
+  d.vel.y-=1.2*dt;
+  d.m.position.addScaledVector(d.vel,dt);
+  d.m.scale.multiplyScalar(1+dt*.8);
+  d.m.material.opacity=.42*Math.pow(Math.max(0,d.life/d.maxLife),1.6);
+ }
+ if(ACTIVE_TRACK!=='sunset'||p.speed<6||p.cliffFalling)return;
+ // Kerbs run along the two outer road edges; trigger only at wheel contact.
+ const edge=Math.abs(p.offset);
+ if(edge<WIDTH/2-1.45||edge>WIDTH/2+2.8)return;
+ curbDustTimer-=dt;if(curbDustTimer>0)return;
+ curbDustTimer=.045;
+ const f=frame(p.t),side=Math.sign(p.offset)||1;
+ const position=p.group.position.clone().addScaledVector(f.normal,side*1.15);
+ for(let j=0;j<3;j++){
+  const d=curbDust.find(x=>x.life<=0);if(!d)break;
+  d.life=d.maxLife=.32+Math.random()*.35;
+  d.m.position.copy(position);d.m.position.y=.12+Math.random()*.18;
+  d.vel.set(-Math.sin(p.worldHeading)*(1+Math.random()*2)+(Math.random()-.5)*1.8,.65+Math.random()*1.65,-Math.cos(p.worldHeading)*(1+Math.random()*2)+(Math.random()-.5)*1.8);
+  d.m.scale.setScalar(.35+Math.random()*.4);
+  d.m.material.opacity=.42;d.m.visible=true;
+ }
+}
 let particleAccumulator=0;
 const particleUp=new THREE.Vector3(0,1,0);
 function updateParticles(dt,p){
@@ -1347,7 +1383,7 @@ if(forwardProgress){
   }
 }
 p.prevT=p.t;if(!p.cliffFalling)placeVehicle(p); // Smooth visual body lean; no instantaneous heading snap.
-updateParticles(dt,p);p.group.rotation.z=lerp(p.group.rotation.z,-p.skid*.16-ctl.steer*.035,1-Math.exp(-dt*7));p.exhaust.visible=p.boost>0||p.reserve>0;
+updateParticles(dt,p);updateCurbDust(dt,p);p.group.rotation.z=lerp(p.group.rotation.z,-p.skid*.16-ctl.steer*.035,1-Math.exp(-dt*7));p.exhaust.visible=p.boost>0||p.reserve>0;
 for(let i=0;i<ais.length;i++){let a=ais[i];if(mode!=='race')continue;a.speed=lerp(a.speed,47*a.skill+5*Math.sin(raceTime*.2+i),dt*1.8);let old=a.t;a.t=(a.t+a.speed*dt/approxLength(a.t))%1;a.offset=lerp(a.offset,Math.sin(a.t*TAU*3+i*2)*2.3,dt*.65);if(old>.9&&a.t<.1)a.lap++;placeVehicle(a)}for(let a of ais){if(mode!=='race')continue;let delta=p.group.position.distanceTo(a.group.position);if(delta<2.6&&delta>0){p.speed*=.985;p.offset+=Math.sign(p.offset-a.offset||1)*dt*5}}
 let rank=1+ais.filter(a=>mode==='race'&&a.lap-1+a.t>completedLaps+p.t).length;$('position').textContent=mode==='race'?rank+' / 4':'SOLO';$('lap').textContent=Math.min(p.lap,3)+' / 3';$('timer').textContent=format(raceTime);$('best').textContent=format(p.best);$('speed').innerHTML=Math.round(Math.abs(p.speed)*1.65)+'<small> KM/H</small>';$('fill').style.width=p.charge+'%';$('boostText').textContent=p.drifting?(p.charge>=100?' MAX RED - LIFT!' :p.charge>83?' RED - GAS = PENALTY!':p.charge>=68?' BLUE - EXIT NOW!':' CHARGING'):'READY';$('chain').textContent='EXIT IN BLUE = BOOST · GAS IN RED = PENALTY';$('status').textContent=offroad?'OFF ROAD - STEER BACK!':p.boost>0||p.reserve>0?'TURBO ACTIVE':p.drifting?(p.overheated?'RED SPARKS - SLOWDOWN!':p.spinPressure>.65?'RUNNING WIDE - COUNTERSTEER!':'SKIDDING - COUNTERSTEER!'):p.wrongWayTime>0?'WRONG WAY - RESET IN '+Math.max(0,2-p.wrongWayTime).toFixed(1)+'S':p.gripStress>.65?'REAR SLIDING - LIFT OFF!':p.gripStress>.28?'GRIP FADING - EASE OFF!':ctl.brake?(p.speed<-.5?'REVERSING':'BRAKING'):ctl.gas?'FULL THROTTLE':'COASTING';if(flashTimeout>0){flashTimeout-=dt;if(flashTimeout<=0)$('flash').classList.remove('show')}}
 function approxLength(t){let a=spline(t-.0005),b=spline(t+.0005);return a.distanceTo(b)*1000}function draw(dt){if(ACTIVE_TRACK==='cliff'&&window.cliffSharks){const t=performance.now()*.001;for(const shark of window.cliffSharks){const a=t*shark.speed+shark.phase;shark.group.position.x=shark.origin.x+Math.cos(a)*5;shark.group.position.z=shark.origin.z+Math.sin(a)*5;shark.group.position.y=shark.origin.y+Math.sin(a*2)*.22;shark.group.rotation.y=a+Math.PI/2}}let p=player;let heading=new THREE.Vector3(Math.sin(p.group.rotation.y),0,Math.cos(p.group.rotation.y));
