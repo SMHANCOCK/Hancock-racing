@@ -496,25 +496,34 @@ if(ACTIVE_TRACK==='cliff'){
   const redStripe=new THREE.MeshStandardMaterial({color:0xc52e34,roughness:.78,flatShading:true});
   const dark=new THREE.MeshStandardMaterial({color:0x343b43,roughness:.7});
   const glass=new THREE.MeshStandardMaterial({color:0xa8e5f4,emissive:0x315e72,emissiveIntensity:.25,roughness:.3});
-  // Wider, irregular sea stack: layered jagged rocks rise above the waterline.
-  const islandRockGeo=new THREE.DodecahedronGeometry(1,1);
-  const islandRockMaterials=[0x4b5758,0x606966,0x77817a,0x8b8d81].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
-  for(let i=0;i<33;i++){
-   const a=i*2.399963,rad=i===0?0:7+(i%5)*3.25;
-   const x=Math.cos(a)*rad,z=Math.sin(a)*rad;
-   const rock=new THREE.Mesh(islandRockGeo,islandRockMaterials[i%4]);
-   rock.position.set(x,-1+(i%4)*.85,z);
-   rock.scale.set(5+(i%4)*2.1,3.3+(i%5)*1.25,5+(i%3)*2.1);
-   rock.rotation.set(i*.19,a,i*.11);rock.castShadow=true;island.add(rock);
+  // Continuous tapered bedrock rather than a pile of separate round boulders.
+  const islandRockMaterials=[0x39494c,0x46575a,0x58676a,0x69736e].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
+  const rimCount=28,levels=[{y:-5,r:23},{y:-1.0,r:23.5},{y:3.5,r:17},{y:7.5,r:10.5},{y:9.5,r:7.5}];
+  const verts=[],idx=[];
+  for(let k=0;k<levels.length;k++)for(let i=0;i<rimCount;i++){
+   const a=i*Math.PI*2/rimCount;
+   const jag=1+.10*Math.sin(i*2.37)+.07*Math.cos(i*4.19+k);
+   const radius=levels[k].r*jag;
+   verts.push(Math.cos(a)*radius,levels[k].y+Math.sin(i*1.81+k)*.8,Math.sin(a)*radius*.78);
   }
-  // Raised central plinth and uneven cliff shelves supporting the lighthouse.
-  for(let i=0;i<9;i++){
-   const a=i*2.4,rad=i===0?0:3.5+(i%3)*2.5;
-   const rock=new THREE.Mesh(islandRockGeo,islandRockMaterials[(i+1)%4]);
-   rock.position.set(Math.cos(a)*rad,2.2+(i%3)*.7,Math.sin(a)*rad);
-   rock.scale.set(5+(i%3),3.5+(i%2),5+(i%3));rock.rotation.y=a;rock.castShadow=true;island.add(rock);
+  for(let k=0;k<levels.length-1;k++)for(let i=0;i<rimCount;i++){
+   const a=k*rimCount+i,b=k*rimCount+(i+1)%rimCount,c=(k+1)*rimCount+i,d=(k+1)*rimCount+(i+1)%rimCount;
+   idx.push(a,b,c,b,d,c);
   }
-  const tower=new THREE.Group();tower.position.y=3;island.add(tower);
+  const bedrockGeo=new THREE.BufferGeometry();
+  bedrockGeo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));bedrockGeo.setIndex(idx);
+  const facets=bedrockGeo.toNonIndexed();facets.computeVertexNormals();
+  const bedrock=new THREE.Mesh(facets,islandRockMaterials[0]);bedrock.castShadow=true;island.add(bedrock);
+  // Angular ledges and smaller detached sea stacks create a rugged shoreline.
+  const ledgeGeo=new THREE.DodecahedronGeometry(1,0);
+  for(let i=0;i<18;i++){
+   const a=i*2.39996,rad=12+(i%5)*3;
+   const rock=new THREE.Mesh(ledgeGeo,islandRockMaterials[1+i%3]);
+   rock.position.set(Math.cos(a)*rad,-.7+(i%3)*1.3,Math.sin(a)*rad*.78);
+   rock.scale.set(3+(i%4)*1.5,2.2+(i%3)*1.3,3+(i%3)*1.3);
+   rock.rotation.set(i*.21,a,i*.13);rock.castShadow=true;island.add(rock);
+  }
+  const tower=new THREE.Group();tower.position.y=9;island.add(tower);
   // Alternating red and white bands, narrowing gently toward the lantern.
   for(let i=0;i<7;i++){
    const lower=3.05-i*.14,upper=lower-.14;
@@ -527,36 +536,39 @@ if(ACTIVE_TRACK==='cliff'){
   const roof=new THREE.Mesh(new THREE.ConeGeometry(3.05,2.4,12),redStripe);roof.position.y=27.5;tower.add(roof);
   const tip=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,1.8,6),dark);tip.position.y=29.3;tower.add(tip);
   const door=new THREE.Mesh(new THREE.BoxGeometry(1.4,3,.15),dark);door.position.set(0,1.5,3.02);tower.add(door);
-  // Soft white surf around the islet at the existing water level.
-  const surf=new THREE.Mesh(new THREE.TorusGeometry(12,.36,5,48),new THREE.MeshBasicMaterial({color:0xd8f4fa,transparent:true,opacity:.55,depthWrite:false}));
-  surf.rotation.x=Math.PI/2;surf.position.y=-.02;island.add(surf);
+  // Animated irregular whitewater bands surrounding the rocky shoreline.
+  const islandFoam=[];
+  const foamMat=new THREE.MeshBasicMaterial({color:0xe7faff,transparent:true,opacity:.55,depthWrite:false,side:THREE.DoubleSide});
+  for(let j=0;j<4;j++){
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(1,.16+j*.025,4,64),foamMat.clone());
+   ring.rotation.x=Math.PI/2;ring.position.y=-.12+j*.018;island.add(ring);
+   islandFoam.push({ring,phase:j/4});
+  }
+  window.cliffIslandFoam=islandFoam;
+
  }
- // Broad, softly rounded cumulus banks rather than tiny faceted pebble clouds.
- // Anchored to camera position so the cloudscape remains visible along the whole circuit.
+ // Bright cloud banks in a camera-relative sky: updated each render frame.
  {
-  const cloudTop=new THREE.MeshLambertMaterial({color:0xffffff,fog:false});
-  const cloudBase=new THREE.MeshLambertMaterial({color:0xe7f0f8,fog:false});
+  const white=new THREE.MeshBasicMaterial({color:0xffffff,fog:false,depthWrite:false});
+  const shade=new THREE.MeshBasicMaterial({color:0xe5f1fc,fog:false,depthWrite:false});
   const puffGeo=new THREE.SphereGeometry(1,12,8);
-  const clouds=new THREE.Group();scene.add(clouds);
-  const cloudPositions=[[-160,100,-230],[-75,118,-270],[45,103,-235],[170,121,-290],[-240,113,-110],[240,104,-125],[-110,132,65],[120,116,100],[-20,145,-350]];
-  for(let i=0;i<cloudPositions.length;i++){
-   const [x,y,z]=cloudPositions[i],cloud=new THREE.Group();
-   cloud.position.set(x,y,z);
-   const size=9+(i%4)*2.5;
-   // Overlapping rounded lobes form a broad continuous fluffy silhouette.
-   for(let j=0;j<11;j++){
-    const a=(j-5)/5;
-    const puff=new THREE.Mesh(puffGeo,j%5===0?cloudBase:cloudTop);
-    puff.position.set(a*size*2.1,Math.cos(a*2.2)*size*.28+(j%3)*size*.1,Math.sin(j*2.1)*size*.16);
-    puff.scale.set(size*(.8+(j%3)*.16),size*(.38+(j%4)*.11),size*(.48+(j%3)*.1));
+  const clouds=new THREE.Group();scene.add(clouds);window.cliffClouds=clouds;
+  const positions=[[-180,92,-220],[-45,105,-260],[130,95,-230],[-230,100,35],[210,98,55],[-90,110,200],[120,98,210]];
+  for(let i=0;i<positions.length;i++){
+   const cloud=new THREE.Group();cloud.position.set(...positions[i]);
+   const size=9+(i%3)*3.5;
+   // Large overlapping lobes and layered tops, with a flatter shaded underside.
+   for(let j=0;j<13;j++){
+    const a=(j-6)/6;
+    const puff=new THREE.Mesh(puffGeo,j%6===0?shade:white);
+    puff.position.set(a*size*2.3,Math.cos(a*2.1)*size*.26+(j%4)*size*.12,(j%3-1)*size*.14);
+    puff.scale.set(size*(.85+(j%3)*.18),size*(.46+(j%4)*.12),size*.72);
     cloud.add(puff);
    }
-   // Flat shaded undersides soften the transition against the sky.
-   const underside=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),cloudBase);
-   underside.position.y=-size*.12;underside.scale.set(size*2.8,size*.32,size*.68);cloud.add(underside);
+   const bottom=new THREE.Mesh(puffGeo,shade);
+   bottom.position.y=-size*.1;bottom.scale.set(size*2.5,size*.25,size*.8);cloud.add(bottom);
    clouds.add(cloud);
   }
-  clouds.onBeforeRender=()=>{clouds.position.x=camera.position.x;clouds.position.z=camera.position.z};
  }
  const foam=mat(0xb6d8d7),rockDark=mat(0x444c49),rockMid=mat(0x626760),rockLight=mat(0x84867b),sharkGrey=mat(0x5c777c);
  const wallGeo=new THREE.DodecahedronGeometry(1,0),dummy=new THREE.Object3D();
@@ -1485,6 +1497,18 @@ updateParticles(dt,p);updateCurbDust(dt,p);p.group.rotation.z=lerp(p.group.rotat
 for(let i=0;i<ais.length;i++){let a=ais[i];if(mode!=='race')continue;a.speed=lerp(a.speed,47*a.skill+5*Math.sin(raceTime*.2+i),dt*1.8);let old=a.t;a.t=(a.t+a.speed*dt/approxLength(a.t))%1;a.offset=lerp(a.offset,Math.sin(a.t*TAU*3+i*2)*2.3,dt*.65);if(old>.9&&a.t<.1)a.lap++;placeVehicle(a)}for(let a of ais){if(mode!=='race')continue;let delta=p.group.position.distanceTo(a.group.position);if(delta<2.6&&delta>0){p.speed*=.985;p.offset+=Math.sign(p.offset-a.offset||1)*dt*5}}
 let rank=1+ais.filter(a=>mode==='race'&&a.lap-1+a.t>completedLaps+p.t).length;$('position').textContent=mode==='race'?rank+' / 4':'SOLO';$('lap').textContent=Math.min(p.lap,3)+' / 3';$('timer').textContent=format(raceTime);$('best').textContent=format(p.best);$('speed').innerHTML=Math.round(Math.abs(p.speed)*1.65)+'<small> KM/H</small>';$('fill').style.width=p.charge+'%';$('boostText').textContent=p.drifting?(p.charge>=100?' MAX RED - LIFT!' :p.charge>83?' RED - GAS = PENALTY!':p.charge>=68?' BLUE - EXIT NOW!':' CHARGING'):'READY';$('chain').textContent='EXIT IN BLUE = BOOST · GAS IN RED = PENALTY';$('status').textContent=offroad?'OFF ROAD - STEER BACK!':p.boost>0||p.reserve>0?'TURBO ACTIVE':p.drifting?(p.overheated?'RED SPARKS - SLOWDOWN!':p.spinPressure>.65?'RUNNING WIDE - COUNTERSTEER!':'SKIDDING - COUNTERSTEER!'):p.wrongWayTime>0?'WRONG WAY - RESET IN '+Math.max(0,2-p.wrongWayTime).toFixed(1)+'S':p.gripStress>.65?'REAR SLIDING - LIFT OFF!':p.gripStress>.28?'GRIP FADING - EASE OFF!':ctl.brake?(p.speed<-.5?'REVERSING':'BRAKING'):ctl.gas?'FULL THROTTLE':'COASTING';if(flashTimeout>0){flashTimeout-=dt;if(flashTimeout<=0)$('flash').classList.remove('show')}}
 function approxLength(t){let a=spline(t-.0005),b=spline(t+.0005);return a.distanceTo(b)*1000}function draw(dt){
+if(ACTIVE_TRACK==='cliff'){
+ if(window.cliffClouds){window.cliffClouds.position.x=camera.position.x;window.cliffClouds.position.z=camera.position.z}
+ if(window.cliffIslandFoam){
+  const t=performance.now()*.001;
+  for(const w of window.cliffIslandFoam){
+   const a=(t*.19+w.phase)%1;
+   w.ring.scale.set(19+a*12,15+a*9,1);
+   w.ring.material.opacity=.48*Math.sin(Math.PI*a);
+  }
+ }
+}
+
 if(ACTIVE_TRACK==='cliff'&&window.cliffWaves){
  const t=performance.now()*.001;
  for(const w of window.cliffWaves){
