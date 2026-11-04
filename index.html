@@ -517,7 +517,7 @@ const $=id=>document.getElementById(id);
 async function requestLandscape(){try{if(document.documentElement.requestFullscreen&&!document.fullscreenElement)await document.documentElement.requestFullscreen();if(screen.orientation?.lock)await screen.orientation.lock('landscape')}catch(e){/* Chrome may disallow locking local HTML: portrait gate remains active. */}}
 document.getElementById('landscapeBtn').addEventListener('click',requestLandscape);
 const TAU=Math.PI*2;const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));const lerp=(a,b,t)=>a+(b-a)*t;
-const ACTIVE_TRACK=['sunset','london','cliff'].includes(sessionStorage.getItem('driftRushTrack'))?sessionStorage.getItem('driftRushTrack'):'sunset';
+const launchParams=new URLSearchParams(location.search);const requestedTrack=launchParams.get('track')||sessionStorage.getItem('driftRushTrack');const ACTIVE_TRACK=['sunset','london','cliff'].includes(requestedTrack)?requestedTrack:'sunset';
 function setTrackSelection(){const london=ACTIVE_TRACK==='london';document.getElementById('trackLabel').textContent=london?'METRO GRAND PRIX':ACTIVE_TRACK==='cliff'?'CLIFFHANGER':'SUNSET CIRCUIT'}
 const PREVIEW_KEY='hancock-track-shot-v83-';
 function loadCircuitPreviews(){
@@ -551,7 +551,7 @@ function captureRealCircuitPreview(){
  loadCircuitPreviews();
 }
 
-function chooseTrack(id){sessionStorage.setItem('hancockPendingMode',selectedMenuMode);if(id===ACTIVE_TRACK){sessionStorage.removeItem('hancockPendingMode');start(selectedMenuMode);return}sessionStorage.setItem('driftRushTrack',id);location.reload()}
+function chooseTrack(id){if(!['sunset','london','cliff'].includes(id))return;sessionStorage.setItem('driftRushTrack',id);if(id===ACTIVE_TRACK){sessionStorage.removeItem('hancockPendingMode');start(selectedMenuMode);return}const target=new URL(location.href);target.searchParams.set('track',id);target.searchParams.set('autostart',selectedMenuMode);sessionStorage.setItem('hancockPendingMode',selectedMenuMode);location.assign(target.href)}
 let selectedMenuMode=sessionStorage.getItem('hancockPendingMode')||'race';
 function showMapMenu(m){selectedMenuMode=m;document.getElementById('menuHome').hidden=true;document.getElementById('mapMenu').hidden=false;document.getElementById('modeHeading').textContent=m==='race'?'GRAND PRIX':'TIME TRIAL'}
 function showHomeMenu(){document.getElementById('mapMenu').hidden=true;document.getElementById('menuHome').hidden=false}
@@ -1672,11 +1672,15 @@ if(ACTIVE_TRACK==='cliff'&&p.cliffFalling>0){
 let target=p.group.position.clone().addScaledVector(heading,-13).add(new THREE.Vector3(0,7,0));camera.position.lerp(target,1-Math.exp(-dt*5));let look=p.group.position.clone().addScaledVector(heading,11).add(new THREE.Vector3(0,2,0));camera.lookAt(look);
 }camera.fov=lerp(camera.fov,67+(p.boost>0||p.reserve>0?8:0),dt*3);camera.updateProjectionMatrix();renderer.render(scene,camera);captureRealCircuitPreview()}function loop(now){requestAnimationFrame(loop);let dt=Math.min((now-last)/1000,.05);last=now;if(running&&!paused){if(starting){countdown-=dt;if(countdown<=0){starting=false;goDisplay=.85;showStartLights(0)}else showStartLights(Math.ceil(countdown))}else{update(dt);if(goDisplay>0){goDisplay-=dt;if(goDisplay<=0)$('startLights').style.display='none'}}}draw(dt)}placeVehicle(player);ais.forEach(placeVehicle);camera.position.set(0,9,-20);requestAnimationFrame(loop);
 $('race').onclick=()=>showMapMenu('race');$('trial').onclick=()=>showMapMenu('trial');// Start immediately after circuit selection; no second confirmation screen.
-if(sessionStorage.getItem('hancockPendingMode')){
- const pending=sessionStorage.getItem('hancockPendingMode');
- sessionStorage.removeItem('hancockPendingMode');
- selectedMenuMode=pending==='trial'?'trial':'race';
- start(selectedMenuMode);
+{
+ const pending=launchParams.get('autostart')||sessionStorage.getItem('hancockPendingMode');
+ if(pending==='trial'||pending==='race'){
+  sessionStorage.removeItem('hancockPendingMode');
+  const clean=new URL(location.href);clean.searchParams.delete('autostart');
+  history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
+  selectedMenuMode=pending;
+  start(selectedMenuMode);
+ }
 }
 const pauseLogoSrc=document.querySelector('#panel .hancockLogo')?.src||'';
 function pause(){if(!running)return;paused=!paused;$('menu').classList.toggle('race-pause',paused);$('menu').style.display=paused?'flex':'none';$('pause').textContent=paused?'✕':'☰';$('pause').setAttribute('aria-label',paused?'Close race menu':'Open race menu');if(paused){$('menu').style.setProperty('--pause-track-image', 'url("'+({sunset:'hancock-track-art/sunset-circuit.jpg',london:'hancock-track-art/metro-grand-prix.jpg',cliff:'hancock-track-art/cliffhanger.jpg'}[ACTIVE_TRACK]||'hancock-track-art/sunset-circuit.jpg')+'")');$('panel').innerHTML=`<div class="pause-logo">${pauseLogoSrc?`<img src="${pauseLogoSrc}" alt="HANCOCK Racing Co. puffin tyre logo">`: '<span>HANCOCK RACING CO.</span>'}</div><button id="pauseClose" type="button" aria-label="Close pause menu">×</button><div class="pause-checkers" aria-hidden="true"></div><h1>RACE PAUSED</h1><div class="pause-track">${ACTIVE_TRACK==='sunset'?'SUNSET CIRCUIT':ACTIVE_TRACK==='london'?'METRO GRAND PRIX':'CLIFFHANGER'}</div><div class="pause-timer">◷ &nbsp; RACE TIME: <strong>${format(raceTime)}</strong></div><div class="buttons"><button id="resume">▶ RESUME RACE</button><button id="restart" class="secondary">↻ RESTART</button><button id="main" class="secondary">⌂ MAIN MENU</button></div>`;$('pauseClose').onclick=pause;$('resume').onclick=pause;$('restart').onclick=()=>start(mode);$('main').onclick=()=>{running=false;paused=false;starting=false;clearTouchControls();sessionStorage.removeItem('hancockPendingMode');window.location.replace(window.location.pathname+'?v=91&home=1')}}}$('pause').addEventListener('pointerdown',e=>{e.stopPropagation()});$('pause').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();pause()});addEventListener('keydown',e=>{if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();keys[e.code]=true;if(e.code==='Escape')pause();if(e.code==='KeyR'&&running)start(mode)});addEventListener('keyup',e=>keys[e.code]=false);addEventListener('blur',()=>{for(let k in keys)keys[k]=false;if(running&&!paused)pause()});// iOS Safari: prevent native selection/gesture handling and release stuck controls.
