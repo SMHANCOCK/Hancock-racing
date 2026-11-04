@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>HANCOCK Racing Co. v14.9.29</title><style>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>HANCOCK Racing Co. v14.9.30</title><style>
 *{box-sizing:border-box}body{margin:0;overflow:hidden;background:#0b1720;color:#fff;font-family:system-ui,Arial,sans-serif;user-select:none}canvas{display:block}#hud{position:fixed;inset:0;pointer-events:none}#top{position:absolute;top:18px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;text-shadow:0 2px 7px #000}#brand{font-size:22px;font-weight:1000;font-style:italic;letter-spacing:2px;color:#ffdb58}#sub{font-size:11px;opacity:.85;letter-spacing:2px}.stats{text-align:right;font-weight:800;font-size:15px;line-height:1.6}.stats span{color:#ffdb58}#bottom{position:absolute;bottom:22px;left:20px;right:20px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px}#speed{font-size:56px;font-weight:1000;font-style:italic;line-height:1}#speed small{font-size:14px;font-style:normal}#boostArea{width:min(310px,42vw)}#boostLabel{font-size:12px;font-weight:900;letter-spacing:2px;margin-bottom:6px}#meter{height:16px;border:2px solid #fff7;background:linear-gradient(180deg,#101820,#050a10);border-radius:12px;overflow:hidden;position:relative}#fill{height:100%;width:0;background:linear-gradient(90deg,#f4ae35,#ffdc6b)}#marker{position:absolute;left:68%;width:16%;top:0;height:100%;background:linear-gradient(180deg,#179ef9,#0560bd);border-left:2px solid #a9e8ff;border-right:2px solid #a9e8ff}#danger{position:absolute;left:84%;width:16%;top:0;height:100%;background:#e8404077;border-left:2px solid #ff7979}#chain{margin-top:6px;font-size:13px;font-weight:800;color:#ffdb58}#flash{position:absolute;top:30%;width:100%;text-align:center;font-size:clamp(28px,6vw,65px);font-weight:1000;font-style:italic;color:#ffdc52;text-shadow:3px 5px 0 #9b452b,0 0 25px #000;opacity:0;transition:opacity .12s}#flash.show{opacity:1}#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(130deg,#102431ed,#07111ce8);z-index:10;padding:18px}#panel{width:min(560px,100%);padding:28px;background:#162b3ce8;border:1px solid #ffffff25;border-radius:22px;box-shadow:0 20px 80px #0009}h1{margin:0;font-size:clamp(36px,9vw,70px);line-height:.95;font-style:italic;letter-spacing:-2px;color:#ffda54}h2{margin:10px 0;color:#ffdb58}p{color:#d5e3e9;line-height:1.55}button{cursor:pointer;border:0;border-radius:10px;padding:13px 20px;background:#ffce47;color:#18212b;font-weight:1000;font-size:16px}button.secondary{background:#385368;color:#fff}button:hover{filter:brightness(1.12)}.buttons{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}.instructions{background:#0c1c2bbd;padding:14px;border-radius:12px;font-size:13px;line-height:1.8;color:#cce0e9}.key{display:inline-block;background:#41586b;border-radius:4px;padding:0 6px;color:#fff;font-weight:700}#touch{position:fixed;bottom:20px;left:12px;right:12px;display:none;justify-content:space-between;pointer-events:none;z-index:4}#touch .cluster{display:flex;gap:9px;align-items:flex-end}#touch button{pointer-events:auto;touch-action:none;background:#19374bc9;border:2px solid #fff7;color:white;font-size:20px;min-width:58px;height:58px;padding:0}#touch button.brake{background:#b34a45e8;font-size:11px;line-height:1.15;min-width:70px}#touch button.gas{background:#36a879d9;font-size:13px}#pause{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:5;background:#132e3b9c;color:white;padding:7px 11px;font-size:12px;display:none}#help{position:fixed;top:90px;left:20px;color:#fff9;font-size:12px;line-height:1.5}#error{position:fixed;inset:0;background:#121f2a;color:white;display:none;z-index:50;padding:30px} @media(pointer:coarse){#touch{display:flex}#bottom{bottom:95px}#help{display:none}#boostArea{width:42vw}#speed{font-size:40px}}@media(max-width:550px){#top{left:12px;right:12px;top:10px}.stats{font-size:12px}#brand{font-size:17px}#bottom{left:12px;right:12px}#panel{padding:22px}}
 #startLights{position:fixed;inset:0;z-index:7;pointer-events:none;display:none;align-items:center;justify-content:center;background:transparent}#startLights .lightbox{padding:20px 28px;border:0;background:transparent;border-radius:0;box-shadow:none;text-align:center}#startLights .lamps{display:flex;gap:16px;justify-content:center}#startLights .lamp{width:clamp(48px,12vw,76px);height:clamp(48px,12vw,76px);border-radius:50%;background:#340e12;border:5px solid #26323a;box-shadow:inset 0 4px 15px #000b}#startLights .lamp.red.on{background:#ff303b;box-shadow:0 0 28px #ff3434,inset 0 0 15px #ffb6b6}#startLights .lamp.green{background:#123522}#startLights .lamp.green.on{background:#36f46d;box-shadow:0 0 36px #36f46d,inset 0 0 15px #caffd5}#startLights .count{font-size:clamp(44px,11vw,90px);font-weight:1000;font-style:italic;line-height:1.2;color:#fff;text-shadow:0 4px 8px #000;margin-top:12px}
 #boardOpen{position:fixed;z-index:21;pointer-events:auto;touch-action:manipulation;right:16px;top:106px;background:#182b39;color:white;border:1px solid #8da9bb;border-radius:12px;padding:10px;font-weight:800}#boardModal{display:none;position:fixed;z-index:30;inset:0;background:#08121ce0;align-items:center;justify-content:center;padding:15px;overflow:auto}#boardCard{width:min(520px,100%);max-height:90vh;overflow:auto;background:#172937;border:1px solid #6b8796;border-radius:18px;padding:22px;box-shadow:0 18px 70px #0008}#boardCard input{width:100%;padding:13px;margin:7px 0;background:#0c1a27;border:1px solid #6b8796;color:white;border-radius:8px;font-size:16px}#boardCard button{padding:11px 15px;border:0;border-radius:9px;background:#ffcf4d;color:#17222b;font-weight:900;margin:6px 5px 6px 0}#boardCard button.secondary{background:#405a6d;color:white}#boardRows{width:100%;border-collapse:collapse}#boardRows td{padding:9px;border-bottom:1px solid #395264}#boardRows td:last-child{text-align:right;font-variant-numeric:tabular-nums}#boardMsg{font-size:13px;color:#aee5ff;min-height:22px}#boardClose{float:right}#boardCard h2{margin-top:3px}
@@ -565,7 +565,7 @@ html.race-autoload #menu{visibility:hidden!important;pointer-events:none!importa
 @media(pointer:coarse){#boostArea{width:42vw}#meter{height:15px}}
 @media (pointer:coarse) and (orientation:landscape) and (max-height:350px){#boostArea{width:35vw}#meter{height:12px}}
 
-/* v14.9.29 racing HUD: actual in-game overlay, not a mockup */
+/* v14.9.30 racing HUD: actual in-game overlay, not a mockup */
 #top{top:8px;left:12px;right:12px;gap:12px;text-shadow:0 2px 5px #000b}
 #top>div:first-child{background:linear-gradient(115deg,#080d14 0%,#151d29 78%,transparent 100%);border-left:5px solid #f22b36;border-bottom:2px solid #f22b36;clip-path:polygon(4% 0,100% 0,94% 100%,0 100%);padding:7px 30px 8px 20px;min-width:235px;filter:drop-shadow(0 3px 4px #0009)}
 #brand{font-size:clamp(14px,2vw,24px);letter-spacing:.4px;color:#fff;text-shadow:1px 2px 3px #000}
@@ -592,7 +592,7 @@ html.race-autoload #menu{visibility:hidden!important;pointer-events:none!importa
 @media(pointer:coarse){#bottom{bottom:clamp(78px,17vh,120px)}#boostArea{width:min(47vw,580px)}#speed{font-size:clamp(28px,5vw,54px)}}
 @media(pointer:coarse) and (orientation:landscape) and (max-height:350px){#bottom{bottom:67px}#boostArea{width:43vw}#touch .cluster [data-control]{height:51px;min-width:59px}#top>div:first-child{padding:4px 23px 4px 14px}.stats{padding:3px 10px}#pause{top:55px;font-size:20px}}
 
-/* v14.9.29.2: mobile control stability and responsive layout */
+/* v14.9.30.2: mobile control stability and responsive layout */
 @media(pointer:coarse),(hover:none){
 #touch{display:flex!important;z-index:30;pointer-events:none;bottom:max(9px,env(safe-area-inset-bottom))}
 #touch [data-control]{display:flex!important;pointer-events:auto!important;touch-action:none!important;position:relative;z-index:31;user-select:none!important}
@@ -603,7 +603,7 @@ html.race-autoload #menu{visibility:hidden!important;pointer-events:none!importa
 }
 #touch [data-control].pressed{filter:brightness(1.25);transform:scale(.97)}
 
-/* v14.9.29: racing HUD faithful to approved visual, gameplay untouched */
+/* v14.9.30: racing HUD faithful to approved visual, gameplay untouched */
 #top{top:12px;left:clamp(88px,9vw,165px);right:12px;align-items:flex-start;gap:10px}
 #top>div:first-child{min-width:0;width:auto;max-width:49vw;clip-path:polygon(7% 0,100% 0,94% 100%,0 100%);background:linear-gradient(155deg,#090b13,#202330 72%,#080910);border:0;border-bottom:3px solid #ff304b;padding:12px 35px 12px 34px;filter:drop-shadow(0 5px 5px #0009)}
 #brand{display:flex;align-items:center;gap:9px;white-space:nowrap;font-size:clamp(12px,1.7vw,24px);font-weight:1000;font-style:italic;letter-spacing:0;text-shadow:0 2px 4px #000}
@@ -661,24 +661,24 @@ html.race-autoload #menu{visibility:hidden!important;pointer-events:none!importa
 #boostArea{width:43vw!important}
 #touch .cluster [data-control]{height:clamp(50px,14vh,76px)!important;min-width:clamp(52px,9vw,80px)!important;width:clamp(52px,9vw,80px)!important}
 }
-/* v14.9.29: move boost gauge below car without altering steering or throttle */
+/* v14.9.30: move boost gauge below car without altering steering or throttle */
 #bottom{bottom:clamp(105px,17vh,145px)}
 #boostArea{bottom:-58px}
 @media(max-width:800px){#bottom{bottom:clamp(86px,16vh,115px)}#boostArea{bottom:-30px}}
 @media(pointer:coarse),(hover:none){#bottom{bottom:clamp(86px,16vh,115px)!important}#boostArea{bottom:-30px!important}}
-/* v14.9.29: anchor boost gauge to the bottom, independent of speed panel */
+/* v14.9.30: anchor boost gauge to the bottom, independent of speed panel */
 #boostArea{position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:clamp(12px,3vh,28px)!important;transform:translateX(-50%)!important;width:min(46vw,780px)!important;z-index:25!important}
 #bottom{position:absolute!important;bottom:clamp(105px,17vh,145px)!important}
 @media(max-width:800px){#boostArea{bottom:clamp(7px,2vh,16px)!important;width:43vw!important}}
 @media(pointer:coarse),(hover:none){#boostArea{bottom:max(7px,env(safe-area-inset-bottom))!important;width:43vw!important}}
-/* v14.9.29: HUD controls only during active racing, never on menu overlays */
+/* v14.9.30: HUD controls only during active racing, never on menu overlays */
 #touch{display:none!important}
 #hud{display:none!important}
 body.race-driving #touch{display:flex!important}
 body.race-driving #hud{display:block!important}
 body.race-driving #pause{display:grid!important}
 body:not(.race-driving) #pause{display:none!important}
-/* v14.9.29: align top HUD and compact race panel */
+/* v14.9.30: align top HUD and compact race panel */
 #pause{transform:none!important;top:clamp(10px,2vh,22px)!important;left:clamp(12px,1.6vw,26px)!important}
 #top{top:clamp(10px,2vh,22px)!important;left:clamp(88px,9vw,155px)!important;right:clamp(12px,1.6vw,26px)!important;align-items:flex-start!important}
 #top>div:first-child{margin:0!important;padding:clamp(9px,1.1vh,16px) clamp(24px,2.4vw,42px)!important;clip-path:polygon(5% 0,100% 0,95% 100%,0 100%)!important;border-bottom:2px solid #ff344c!important}
@@ -693,7 +693,7 @@ body:not(.race-driving) #pause{display:none!important}
 .stats{min-width:clamp(175px,33vw,255px)!important;max-width:40vw!important;min-height:65px!important;column-gap:6px!important;padding:7px 9px!important;font-size:clamp(9px,1.45vw,13px)!important}
 #position{font-size:clamp(16px,2.4vw,25px)!important}
 }
-/* v14.9.29: less bulky race HUD, keep boost visible and controls tappable */
+/* v14.9.30: less bulky race HUD, keep boost visible and controls tappable */
 #bottom>div:first-child{width:clamp(145px,18vw,270px)!important;padding:6px 22px 6px 13px!important}
 #speed{font-size:clamp(28px,4vw,54px)!important}
 #status{font-size:clamp(9px,.9vw,12px)!important}
@@ -708,7 +708,7 @@ body:not(.race-driving) #pause{display:none!important}
 #touch .cluster [data-control]{min-width:clamp(49px,8vw,70px)!important;width:clamp(49px,8vw,70px)!important;height:clamp(49px,12vh,68px)!important}
 #boostArea{width:42vw!important}
 }
-/* v14.9.29: restore original boost physics; improve control spacing and touch response */
+/* v14.9.30: restore original boost physics; improve control spacing and touch response */
 #touch{left:clamp(14px,2.4vw,40px)!important;right:clamp(14px,2.4vw,40px)!important}
 #touch .cluster{gap:clamp(16px,2.2vw,34px)!important}
 #touch [data-control]{touch-action:none!important;-webkit-user-select:none!important;user-select:none!important;transition:filter .06s linear,background .06s linear!important}
@@ -717,14 +717,14 @@ body:not(.race-driving) #pause{display:none!important}
 #touch .cluster{gap:clamp(11px,2vw,22px)!important}
 #touch{left:clamp(10px,1.8vw,20px)!important;right:clamp(10px,1.8vw,20px)!important}
 }
-/* v14.9.29: high-contrast live charge endpoint over blue/red boost zones */
+/* v14.9.30: high-contrast live charge endpoint over blue/red boost zones */
 #meter{position:relative!important}
 #chargeEdge{position:absolute;z-index:12;top:-2px;bottom:-2px;left:0;width:4px;transform:translateX(-50%);border-radius:2px;background:#fff;box-shadow:0 0 2px 1px #07121d,0 0 7px 3px #fff,0 0 12px 4px #ffdc4d;opacity:0;pointer-events:none;transition:left .045s linear,opacity .08s ease}
 #chargeEdge.visible{opacity:1}
 #chargeEdge.blue{background:#fff;box-shadow:0 0 2px 1px #07121d,0 0 8px 3px #fff,0 0 15px 5px #00c8ff}
 #chargeEdge.red{background:#fff;box-shadow:0 0 2px 1px #07121d,0 0 8px 3px #fff,0 0 15px 5px #ff2444}
 
-/* v14.9.29: clean racing UI, compact speedometer and time-trial stats */
+/* v14.9.30: clean racing UI, compact speedometer and time-trial stats */
 #top>div:first-child{display:none!important}
 #top{left:auto!important;right:clamp(12px,1.6vw,26px)!important;justify-content:flex-end!important;width:auto!important}
 #bottom>div:first-child{
@@ -755,15 +755,15 @@ body.trial-mode .stats>div:nth-child(4){grid-row:3!important}
 #touch .cluster:first-child{gap:clamp(15px,2.5vw,25px)!important}
 body.trial-mode .stats{min-width:clamp(140px,25vw,210px)!important;max-width:30vw!important}
 }
-/* v14.9.29 subtle main-menu-only version label */
+/* v14.9.30 subtle main-menu-only version label */
 #menuVersion{position:absolute;top:max(12px,env(safe-area-inset-top));left:max(14px,env(safe-area-inset-left));z-index:2;font-size:clamp(10px,1.1vw,14px);font-weight:700;letter-spacing:.08em;color:rgba(255,255,255,.35);pointer-events:none}
 #menu.race-pause #menuVersion,#menu.finished #menuVersion,#menu.trialResults #menuVersion{display:none}
-/* v14.9.29: keep menu DOM structure intact; hidden chain node required by update loop */
-#menu:before{content:"v14.9.29";position:absolute;top:max(12px,env(safe-area-inset-top));left:max(14px,env(safe-area-inset-left));font-size:clamp(10px,1.1vw,14px);font-weight:700;letter-spacing:.08em;color:rgba(255,255,255,.35);pointer-events:none}
+/* v14.9.30: keep menu DOM structure intact; hidden chain node required by update loop */
+#menu:before{content:"v14.9.30";position:absolute;top:max(12px,env(safe-area-inset-top));left:max(14px,env(safe-area-inset-left));font-size:clamp(10px,1.1vw,14px);font-weight:700;letter-spacing:.08em;color:rgba(255,255,255,.35);pointer-events:none}
 #menu.race-pause:before,#menu.finished:before,#menu.trialResults:before{content:none}
 #chain{display:none!important}
 #trackLabel{display:none!important}
-/* v14.9.29: compact motorsport speedometer, no driving/boost changes */
+/* v14.9.30: compact motorsport speedometer, no driving/boost changes */
 #bottom>div:first-child{
  position:absolute!important;
  isolation:isolate!important;
@@ -814,7 +814,7 @@ body.trial-mode .stats{min-width:clamp(140px,25vw,210px)!important;max-width:30v
  #status{font-size:clamp(9px,1vw,11px)!important;margin-top:5px!important}
 }
 
-/* v14.9.29: reference-matched two-tier racing speedometer */
+/* v14.9.30: reference-matched two-tier racing speedometer */
 #bottom>div:first-child{
   position:absolute!important;isolation:isolate!important;box-sizing:border-box!important;
   width:clamp(215px,24vw,420px)!important;min-width:0!important;
@@ -869,7 +869,7 @@ body.trial-mode .stats{min-width:clamp(140px,25vw,210px)!important;max-width:30v
  #speed{font-size:clamp(36px,5.5vw,61px)!important;letter-spacing:-2px!important}
  #status{left:clamp(18px,3vw,30px)!important;bottom:4px!important;font-size:clamp(10px,1.4vw,16px)!important}
 }
-/* v14.9.29: speedometer silhouette and typography matched to reference artwork */
+/* v14.9.30: speedometer silhouette and typography matched to reference artwork */
 #bottom>div:first-child{
  position:absolute!important;box-sizing:border-box!important;isolation:isolate!important;
  width:clamp(250px,25vw,440px)!important;height:clamp(83px,7.7vw,135px)!important;
@@ -904,7 +904,7 @@ body.trial-mode .stats{min-width:clamp(140px,25vw,210px)!important;max-width:30v
  #speed{font-size:clamp(38px,5vw,60px)!important;letter-spacing:-2px!important}
  #status{font-size:clamp(10px,1.5vw,15px)!important}
 }
-/* v14.9.29: reference alignment: numbers high in top tier, grip wholly below red rule */
+/* v14.9.30: reference alignment: numbers high in top tier, grip wholly below red rule */
 #bottom>div:first-child{width:clamp(240px,24vw,420px)!important;height:clamp(86px,7.4vw,126px)!important}
 #speed{left:20%!important;top:1%!important;font-size:clamp(49px,4.5vw,79px)!important;line-height:1!important;letter-spacing:-3px!important;align-items:baseline!important;gap:clamp(6px,.7vw,12px)!important}
 #speed small{font-size:.31em!important;letter-spacing:-.5px!important}
@@ -914,7 +914,7 @@ body.trial-mode .stats{min-width:clamp(140px,25vw,210px)!important;max-width:30v
 #speed{left:20%!important;top:1%!important;font-size:clamp(35px,4.5vw,52px)!important;letter-spacing:-2px!important}
 #status{left:15%!important;bottom:9%!important;font-size:clamp(9px,1.3vw,14px)!important}
 }
-/* v14.9.29: tighten speedometer width, modestly narrow visual red segment */
+/* v14.9.30: tighten speedometer width, modestly narrow visual red segment */
 #bottom>div:first-child{width:clamp(205px,20vw,350px)!important}
 #speed{left:20%!important;font-size:clamp(48px,4.3vw,76px)!important}
 #status{left:16%!important;font-size:clamp(12px,1.25vw,21px)!important}
@@ -924,7 +924,7 @@ body.trial-mode .stats{min-width:clamp(140px,25vw,210px)!important;max-width:30v
  #speed{font-size:clamp(33px,4.1vw,49px)!important}
  #status{font-size:clamp(9px,1.15vw,13px)!important}
 }
-/* v14.9.29 minimal speed readout: no panel or decorative graphics */
+/* v14.9.30 minimal speed readout: no panel or decorative graphics */
 #bottom>div:first-child{
  position:absolute!important;isolation:auto!important;overflow:visible!important;
  width:auto!important;min-width:0!important;height:auto!important;
@@ -1863,6 +1863,7 @@ function updateCliffSplash(dt){
  for(const d of fx.droplets){d.mesh.position.set(Math.cos(d.angle)*d.radius*t,Math.max(-.5,7*d.height*t-19*t*t),Math.sin(d.angle)*d.radius*t);d.mesh.material.opacity=Math.max(0,1-t/1.25)}
  if(t>1.5){fx.group.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose()}});scene.remove(fx.group);cliffSplash=null}
 }
+let hudRefreshAccumulator=0;
 function update(dt){raceTime+=dt;if(cliffSplash&&!(ACTIVE_TRACK==='cliff'&&player.cliffFalling>0))updateCliffSplash(dt);const ctl=input(),p=player;ctl.brake=ctl.brake&&!ctl.gas;
  if(ACTIVE_TRACK==='cliff'&&p.cliffFalling>0){
    p.cliffFalling=Math.max(0,p.cliffFalling-dt);
@@ -2134,7 +2135,13 @@ if(forwardProgress){
 p.prevT=p.t;if(!p.cliffFalling)placeVehicle(p); // Smooth visual body lean; no instantaneous heading snap.
 updateParticles(dt,p);updateCurbDust(dt,p);p.group.rotation.z=lerp(p.group.rotation.z,-p.skid*.16-ctl.steer*.035,1-Math.exp(-dt*7));p.exhaust.visible=p.boost>0||p.reserve>0;
 for(let i=0;i<ais.length;i++){let a=ais[i];if(mode!=='race')continue;a.speed=lerp(a.speed,47*a.skill+5*Math.sin(raceTime*.2+i),dt*1.8);let old=a.t;a.t=(a.t+a.speed*dt/approxLength(a.t))%1;a.offset=lerp(a.offset,Math.sin(a.t*TAU*3+i*2)*2.3,dt*.65);if(old>.9&&a.t<.1)a.lap++;placeVehicle(a)}for(let a of ais){if(mode!=='race')continue;let delta=p.group.position.distanceTo(a.group.position);if(delta<2.6&&delta>0){p.speed*=.985;p.offset+=Math.sign(p.offset-a.offset||1)*dt*5}}
-let rank=1+ais.filter(a=>mode==='race'&&a.lap-1+a.t>completedLaps+p.t).length;$('position').textContent=mode==='race'?rank+' / 4':'SOLO';$('lap').textContent=Math.min(p.lap,3)+' / 3';$('timer').textContent=format(raceTime);$('best').textContent=format(p.best);$('speed').firstChild.nodeValue=String(Math.round(Math.abs(p.speed)*1.65/1.609344));$('fill').style.width=p.charge+'%';const edge=$('chargeEdge');edge.style.left=Math.min(99.5,Math.max(0,p.charge))+'%';edge.classList.toggle('visible',p.drifting&&p.charge>1);edge.classList.toggle('blue',p.charge>=68&&p.charge<=84);edge.classList.toggle('red',p.charge>84);$('meter').classList.toggle('in-blue',p.drifting&&p.charge>=68&&p.charge<=84);$('meter').classList.toggle('in-red',p.drifting&&p.charge>84);$('status').textContent=offroad?'OFF ROAD - STEER BACK!':p.boost>0||p.reserve>0?'TURBO ACTIVE':p.drifting?(p.overheated?'RED SPARKS - SLOWDOWN!':p.spinPressure>.65?'RUNNING WIDE - COUNTERSTEER!':'SKIDDING - COUNTERSTEER!'):p.wrongWayTime>0?'WRONG WAY - RESET IN '+Math.max(0,2-p.wrongWayTime).toFixed(1)+'S':p.gripStress>.65?'REAR SLIDING - LIFT OFF!':p.gripStress>.28?'GRIP FADING - EASE OFF!':ctl.brake?(p.speed<-.5?'REVERSING':'BRAKING'):ctl.gas?'FULL THROTTLE':'COASTING';if(flashTimeout>0){flashTimeout-=dt;if(flashTimeout<=0)$('flash').classList.remove('show')}}
+// Keep physics at full frame rate; refresh browser HUD at 20 Hz to avoid
+// expensive DOM/style invalidation competing with WebGL on mobile.
+hudRefreshAccumulator+=dt;
+if(hudRefreshAccumulator>=.05){hudRefreshAccumulator%=.05;
+let rank=1+ais.filter(a=>mode==='race'&&a.lap-1+a.t>completedLaps+p.t).length;$('position').textContent=mode==='race'?rank+' / 4':'SOLO';$('lap').textContent=Math.min(p.lap,3)+' / 3';$('timer').textContent=format(raceTime);$('best').textContent=format(p.best);$('speed').firstChild.nodeValue=String(Math.round(Math.abs(p.speed)*1.65/1.609344));$('fill').style.width=p.charge+'%';const edge=$('chargeEdge');edge.style.left=Math.min(99.5,Math.max(0,p.charge))+'%';edge.classList.toggle('visible',p.drifting&&p.charge>1);edge.classList.toggle('blue',p.charge>=68&&p.charge<=84);edge.classList.toggle('red',p.charge>84);$('meter').classList.toggle('in-blue',p.drifting&&p.charge>=68&&p.charge<=84);$('meter').classList.toggle('in-red',p.drifting&&p.charge>84);$('status').textContent=offroad?'OFF ROAD - STEER BACK!':p.boost>0||p.reserve>0?'TURBO ACTIVE':p.drifting?(p.overheated?'RED SPARKS - SLOWDOWN!':p.spinPressure>.65?'RUNNING WIDE - COUNTERSTEER!':'SKIDDING - COUNTERSTEER!'):p.wrongWayTime>0?'WRONG WAY - RESET IN '+Math.max(0,2-p.wrongWayTime).toFixed(1)+'S':p.gripStress>.65?'REAR SLIDING - LIFT OFF!':p.gripStress>.28?'GRIP FADING - EASE OFF!':ctl.brake?(p.speed<-.5?'REVERSING':'BRAKING'):ctl.gas?'FULL THROTTLE':'COASTING';
+}
+if(flashTimeout>0){flashTimeout-=dt;if(flashTimeout<=0)$('flash').classList.remove('show')}}
 function approxLength(t){let a=spline(t-.0005),b=spline(t+.0005);return a.distanceTo(b)*1000}function draw(dt){
 if(ACTIVE_TRACK==='cliff'){
  if(window.cliffClouds){window.cliffClouds.position.x=camera.position.x;window.cliffClouds.position.z=camera.position.z}
