@@ -487,6 +487,58 @@ function spline(t){let f=((t%1)+1)%1*N,i=Math.floor(f),u=f-i;const a=points[(i-1
 if(ACTIVE_TRACK==='cliff'){
  const sea=new THREE.Mesh(new THREE.PlaneGeometry(850,850),new THREE.MeshStandardMaterial({color:0x12657d,roughness:.38,metalness:.12,flatShading:true,side:THREE.DoubleSide}));
  sea.rotation.x=-Math.PI/2;sea.position.y=-15;scene.add(sea);
+ // Offshore lighthouse: isolated rocky islet, with no road connection or collision.
+ {
+  const f=frame(.18),islet=f.p.clone().addScaledVector(f.normal,-125).addScaledVector(f.tan,18);
+  const island=new THREE.Group();island.position.set(islet.x,-14.8,islet.z);scene.add(island);
+  const stone=new THREE.MeshStandardMaterial({color:0x636a67,roughness:1,flatShading:true});
+  const pale=new THREE.MeshStandardMaterial({color:0xf4efe6,roughness:.78,flatShading:true});
+  const redStripe=new THREE.MeshStandardMaterial({color:0xc52e34,roughness:.78,flatShading:true});
+  const dark=new THREE.MeshStandardMaterial({color:0x343b43,roughness:.7});
+  const glass=new THREE.MeshStandardMaterial({color:0xa8e5f4,emissive:0x315e72,emissiveIntensity:.25,roughness:.3});
+  for(let i=0;i<11;i++){
+   const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1,0),stone);
+   const a=i*2.39996,rad=i===0?0:5.5+(i%3)*2.8;
+   rock.position.set(Math.cos(a)*rad,-.3+(i%3)*.8,Math.sin(a)*rad);
+   rock.scale.set(5.5+(i%3)*2.1,2.5+(i%4),5+(i%2)*2);rock.rotation.y=a;island.add(rock);
+  }
+  const tower=new THREE.Group();tower.position.y=3;island.add(tower);
+  // Alternating red and white bands, narrowing gently toward the lantern.
+  for(let i=0;i<7;i++){
+   const lower=3.05-i*.14,upper=lower-.14;
+   const band=new THREE.Mesh(new THREE.CylinderGeometry(upper,lower,3.15,12),i%2===0?pale:redStripe);
+   band.position.y=1.575+i*3.15;band.castShadow=true;tower.add(band);
+  }
+  const balcony=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.4,.65,12),dark);balcony.position.y=22.2;tower.add(balcony);
+  const lantern=new THREE.Mesh(new THREE.CylinderGeometry(2.25,2.25,3.8,12),glass);lantern.position.y=24.4;tower.add(lantern);
+  for(let i=0;i<8;i++){const a=i*Math.PI/4;const bar=new THREE.Mesh(new THREE.BoxGeometry(.14,3.8,.14),dark);bar.position.set(Math.sin(a)*2.22,24.4,Math.cos(a)*2.22);tower.add(bar)}
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(3.05,2.4,12),redStripe);roof.position.y=27.5;tower.add(roof);
+  const tip=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,1.8,6),dark);tip.position.y=29.3;tower.add(tip);
+  const door=new THREE.Mesh(new THREE.BoxGeometry(1.4,3,.15),dark);door.position.set(0,1.5,3.02);tower.add(door);
+  // Soft white surf around the islet at the existing water level.
+  const surf=new THREE.Mesh(new THREE.TorusGeometry(12,.36,5,48),new THREE.MeshBasicMaterial({color:0xd8f4fa,transparent:true,opacity:.55,depthWrite:false}));
+  surf.rotation.x=Math.PI/2;surf.position.y=-.02;island.add(surf);
+ }
+ // Low-poly cumulus clouds: clustered faceted white puffs, all above the circuit.
+ {
+  const cloudWhite=new THREE.MeshLambertMaterial({color:0xffffff,flatShading:true,fog:false});
+  const cloudShade=new THREE.MeshLambertMaterial({color:0xdcecf7,flatShading:true,fog:false});
+  const puffGeo=new THREE.IcosahedronGeometry(1,1);
+  const clouds=new THREE.Group();scene.add(clouds);
+  for(let i=0;i<18;i++){
+   const f=frame((i+.25)/18),side=i%3===0?-1:1;
+   const centre=f.p.clone().addScaledVector(f.normal,side*(90+(i%5)*22));
+   const cloud=new THREE.Group();cloud.position.set(centre.x,66+(i%4)*13,centre.z);
+   const size=3.5+(i%4)*1.3;
+   for(let j=0;j<7;j++){
+    const puff=new THREE.Mesh(puffGeo,j%4===0?cloudShade:cloudWhite);
+    puff.position.set((j-3)*size*.76,Math.sin(j*1.7)*size*.27,Math.cos(j*2.2)*size*.24);
+    puff.scale.set(size*(.85+(j%3)*.16),size*(.48+(j%3)*.15),size*.64);
+    cloud.add(puff);
+   }
+   cloud.rotation.y=i*1.71;clouds.add(cloud);
+  }
+ }
  const foam=mat(0xb6d8d7),rockDark=mat(0x444c49),rockMid=mat(0x626760),rockLight=mat(0x84867b),sharkGrey=mat(0x5c777c);
  const wallGeo=new THREE.DodecahedronGeometry(1,0),dummy=new THREE.Object3D();
  const wallMaterials=[rockDark,rockMid,rockLight],wallMeshes=wallMaterials.map(m=>new THREE.InstancedMesh(wallGeo,m,270));
