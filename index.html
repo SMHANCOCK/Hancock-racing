@@ -1182,8 +1182,8 @@ function metroLightPool(x,z,radius,color,opacity){
  const m=new THREE.Mesh(metroGlowGeometry,new THREE.ShaderMaterial({
   transparent:true,depthWrite:false,side:THREE.DoubleSide,
   uniforms:{glowColor:{value:new THREE.Color(color)},alpha:{value:opacity}},
-  vertexShader:'varying vec2 uv;void main(){uv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:'uniform vec3 glowColor;uniform float alpha;varying vec2 uv;void main(){vec2 p=(uv-.5)*2.;float glow=pow(max(0.,1.-dot(p,p)),2.4);gl_FragColor=vec4(glowColor,glow*alpha);}'
+  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:'uniform vec3 glowColor;uniform float alpha;varying vec2 vUv;void main(){vec2 p=(vUv-.5)*2.;float glow=pow(max(0.,1.-dot(p,p)),2.4);gl_FragColor=vec4(glowColor,glow*alpha);}'
  }));
  m.rotation.x=-Math.PI/2;m.position.set(x,.075,z);m.scale.set(radius*2,radius*2,1);m.renderOrder=2;scene.add(m);
 }
