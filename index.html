@@ -1672,17 +1672,32 @@ if(ACTIVE_TRACK==='cliff'&&p.cliffFalling>0){
 let target=p.group.position.clone().addScaledVector(heading,-13).add(new THREE.Vector3(0,7,0));camera.position.lerp(target,1-Math.exp(-dt*5));let look=p.group.position.clone().addScaledVector(heading,11).add(new THREE.Vector3(0,2,0));camera.lookAt(look);
 }camera.fov=lerp(camera.fov,67+(p.boost>0||p.reserve>0?8:0),dt*3);camera.updateProjectionMatrix();renderer.render(scene,camera);captureRealCircuitPreview()}function loop(now){requestAnimationFrame(loop);let dt=Math.min((now-last)/1000,.05);last=now;if(running&&!paused){if(starting){countdown-=dt;if(countdown<=0){starting=false;goDisplay=.85;showStartLights(0)}else showStartLights(Math.ceil(countdown))}else{update(dt);if(goDisplay>0){goDisplay-=dt;if(goDisplay<=0)$('startLights').style.display='none'}}}draw(dt)}placeVehicle(player);ais.forEach(placeVehicle);camera.position.set(0,9,-20);requestAnimationFrame(loop);
 $('race').onclick=()=>showMapMenu('race');$('trial').onclick=()=>showMapMenu('trial');// Start immediately after circuit selection; no second confirmation screen.
-{
- const pending=launchParams.get('autostart');
- if(pending==='trial'||pending==='race'){
-  sessionStorage.removeItem('hancockPendingMode');
-  selectedMenuMode=pending;
-  start(selectedMenuMode);
-  const clean=new URL(location.href);clean.searchParams.delete('autostart');
-  history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
- }
-}
+// Keep the real home screen before any launch modifies the panel.
 const originalHomePanel=$('panel').innerHTML;
+// Defer cross-track launch until the entire module, controls and render loop are ready.
+const pendingAutoStart=launchParams.get('autostart');
+if(pendingAutoStart==='trial'||pendingAutoStart==='race'){
+ selectedMenuMode=pendingAutoStart;
+ requestAnimationFrame(()=>{
+  try{
+   start(pendingAutoStart);
+   const clean=new URL(location.href);clean.searchParams.delete('autostart');
+   history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
+   sessionStorage.removeItem('hancockPendingMode');
+  }catch(error){
+   console.error('Circuit autostart failed',error);
+   $('menu').style.display='flex';
+   $('panel').innerHTML=originalHomePanel;
+   $('race').onclick=()=>showMapMenu('race');
+   $('trial').onclick=()=>showMapMenu('trial');
+   $('mapBack').onclick=showHomeMenu;
+   $('chooseSunset').onclick=()=>chooseTrack('sunset');
+   $('chooseLondon').onclick=()=>chooseTrack('london');
+   $('chooseCliff').onclick=()=>chooseTrack('cliff');
+   showMapMenu(pendingAutoStart);
+  }
+ });
+}
 function returnToHome(){
  running=false;paused=false;starting=false;clearTouchControls();
  sessionStorage.removeItem('hancockPendingMode');
@@ -1698,7 +1713,7 @@ function returnToHome(){
  $('chooseLondon').onclick=()=>chooseTrack('london');
  $('chooseCliff').onclick=()=>chooseTrack('cliff');
  showHomeMenu();
- loadCircuitPreviews();
+ // Avoid expensive image/cache work while restoring the home menu.
  const clean=new URL(location.href);clean.searchParams.delete('autostart');
  history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
 }
