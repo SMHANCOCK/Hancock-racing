@@ -2202,8 +2202,8 @@ let fpsLastTime=0,fpsWindowStart=0,fpsFrameCount=0,fpsSlowFrames=0,fpsWorstMs=0;
 function loop(now){
  if(HUD_PERF_TEST&&!document.body.classList.contains('hud-perf-test'))document.body.classList.add('hud-perf-test');
  const hudVisible=running&&!paused&&!player.finished&&$('menu').style.display==='none';
- if(hudVisible!==raceHudVisible)fpsDiagnostic.style.display=hudVisible?'block':'none';
- if(hudVisible){
+ if(hudVisible!==raceHudVisible)fpsDiagnostic.style.display='none';
+ if(false&&hudVisible){
    if(fpsLastTime){
      const frameMs=now-fpsLastTime;
      if(frameMs>24)fpsSlowFrames++;
