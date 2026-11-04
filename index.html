@@ -496,32 +496,31 @@ if(ACTIVE_TRACK==='cliff'){
   const redStripe=new THREE.MeshStandardMaterial({color:0xc52e34,roughness:.78,flatShading:true});
   const dark=new THREE.MeshStandardMaterial({color:0x343b43,roughness:.7});
   const glass=new THREE.MeshStandardMaterial({color:0xa8e5f4,emissive:0x315e72,emissiveIntensity:.25,roughness:.3});
-  // Continuous tapered bedrock rather than a pile of separate round boulders.
-  const islandRockMaterials=[0x39494c,0x46575a,0x58676a,0x69736e].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
-  const rimCount=28,levels=[{y:-5,r:23},{y:-1.0,r:23.5},{y:3.5,r:17},{y:7.5,r:10.5},{y:9.5,r:7.5}];
-  const verts=[],idx=[];
+  // Jagged unified island: continuous faceted sea stack with irregular shoreline.
+  const rockMat=new THREE.MeshStandardMaterial({color:0x626b69,roughness:1,flatShading:true,side:THREE.DoubleSide});
+  const rimCount=32,levels=[{y:-5,r:26},{y:-.4,r:25},{y:2.5,r:21},{y:6,r:15},{y:9.5,r:10},{y:10.3,r:8}];
+  const verts=[],indices=[];
   for(let k=0;k<levels.length;k++)for(let i=0;i<rimCount;i++){
-   const a=i*Math.PI*2/rimCount;
-   const jag=1+.10*Math.sin(i*2.37)+.07*Math.cos(i*4.19+k);
+   const angle=i*Math.PI*2/rimCount;
+   const jag=1+.14*Math.sin(i*2.37)+.075*Math.cos(i*4.19+k*.3);
    const radius=levels[k].r*jag;
-   verts.push(Math.cos(a)*radius,levels[k].y+Math.sin(i*1.81+k)*.8,Math.sin(a)*radius*.78);
+   verts.push(Math.cos(angle)*radius,levels[k].y+Math.sin(i*1.81+k*.4)*.85,Math.sin(angle)*radius*.8);
   }
   for(let k=0;k<levels.length-1;k++)for(let i=0;i<rimCount;i++){
    const a=k*rimCount+i,b=k*rimCount+(i+1)%rimCount,c=(k+1)*rimCount+i,d=(k+1)*rimCount+(i+1)%rimCount;
-   idx.push(a,b,c,b,d,c);
+   indices.push(a,c,b,b,c,d);
   }
-  const bedrockGeo=new THREE.BufferGeometry();
-  bedrockGeo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));bedrockGeo.setIndex(idx);
-  const facets=bedrockGeo.toNonIndexed();facets.computeVertexNormals();
-  const bedrock=new THREE.Mesh(facets,islandRockMaterials[0]);bedrock.castShadow=true;island.add(bedrock);
-  // Angular ledges and smaller detached sea stacks create a rugged shoreline.
+  const rockGeo=new THREE.BufferGeometry();rockGeo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));rockGeo.setIndex(indices);
+  const facetedRock=rockGeo.toNonIndexed();facetedRock.computeVertexNormals();
+  const bedrock=new THREE.Mesh(facetedRock,rockMat);bedrock.castShadow=true;bedrock.receiveShadow=true;island.add(bedrock);
+  // A handful of angular satellite sea stacks, separated rather than overlapping the main island.
   const ledgeGeo=new THREE.DodecahedronGeometry(1,0);
-  for(let i=0;i<18;i++){
-   const a=i*2.39996,rad=12+(i%5)*3;
-   const rock=new THREE.Mesh(ledgeGeo,islandRockMaterials[1+i%3]);
-   rock.position.set(Math.cos(a)*rad,-.7+(i%3)*1.3,Math.sin(a)*rad*.78);
-   rock.scale.set(3+(i%4)*1.5,2.2+(i%3)*1.3,3+(i%3)*1.3);
-   rock.rotation.set(i*.21,a,i*.13);rock.castShadow=true;island.add(rock);
+  const ledgeColors=[0x4c595b,0x68716d,0x7a8079].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
+  for(let i=0;i<9;i++){
+   const angle=i*2.399963,rad=26+(i%3)*4;
+   const rock=new THREE.Mesh(ledgeGeo,ledgeColors[i%3]);
+   rock.position.set(Math.cos(angle)*rad,-1.8+(i%2)*.7,Math.sin(angle)*rad*.8);
+   rock.scale.set(2.8+(i%3),2+(i%3),3+(i%2)*1.4);rock.rotation.y=angle;island.add(rock);
   }
   const tower=new THREE.Group();tower.position.y=9;island.add(tower);
   // Alternating red and white bands, narrowing gently toward the lantern.
@@ -546,6 +545,24 @@ if(ACTIVE_TRACK==='cliff'){
   }
   window.cliffIslandFoam=islandFoam;
 
+ }
+ // Repeating white-capped ocean swells, always on the existing sea surface.
+ {
+  const waveLines=[];
+  const crestMat=new THREE.MeshBasicMaterial({color:0xe8faff,transparent:true,opacity:.48,depthWrite:false,side:THREE.DoubleSide});
+  const crestGeo=new THREE.PlaneGeometry(1,1);
+  // Individual short curved-looking streaks form broken wave fronts, not solid rings.
+  for(let i=0;i<115;i++){
+   const f=frame((i+.17)/115),off=-WIDTH/2-25-(i%9)*11;
+   const p=f.p.clone().addScaledVector(f.normal,off);
+   const crest=new THREE.Mesh(crestGeo,crestMat.clone());
+   crest.rotation.x=-Math.PI/2;crest.rotation.z=Math.atan2(f.tan.x,f.tan.z);
+   crest.position.set(p.x,-14.94+(i%3)*.006,p.z);
+   crest.scale.set(2.8+(i%4)*1.6,.11+(i%3)*.075,1);
+   scene.add(crest);
+   waveLines.push({mesh:crest,base:p.clone(),phase:(i*.618033)%1,speed:.21+(i%4)*.035,normal:f.normal.clone(),width:2.8+(i%4)*1.6});
+  }
+  window.cliffOceanCrests=waveLines;
  }
  // Bright cloud banks in a camera-relative sky: updated each render frame.
  {
@@ -1509,6 +1526,16 @@ if(ACTIVE_TRACK==='cliff'){
  }
 }
 
+if(ACTIVE_TRACK==='cliff'&&window.cliffOceanCrests){
+ const t=performance.now()*.001;
+ for(const w of window.cliffOceanCrests){
+  const phase=(t*w.speed+w.phase)%1;
+  w.mesh.position.x=w.base.x+w.normal.x*(phase*4-2);
+  w.mesh.position.z=w.base.z+w.normal.z*(phase*4-2);
+  w.mesh.scale.x=w.width*(.6+phase*.8);
+  w.mesh.material.opacity=.54*Math.sin(Math.PI*phase);
+ }
+}
 if(ACTIVE_TRACK==='cliff'&&window.cliffWaves){
  const t=performance.now()*.001;
  for(const w of window.cliffWaves){
