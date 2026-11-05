@@ -1533,50 +1533,101 @@ for(let i=0;i<100;i++){let t=i/100,f=frame(t),p=f.p.clone().addScaledVector(f.no
 // Start line checkered tiles.
 {let f=frame(0);const tiles=ACTIVE_TRACK==='cliff'?14:20;for(let a=0;a<tiles;a++)for(let b=0;b<2;b++){let lateral=(a-(tiles-1)/2)*(ACTIVE_TRACK==='cliff'?1.64:1.65);let p=f.p.clone().addScaledVector(f.normal,lateral).addScaledVector(f.tan,(b-.5)*1.1);let o=mesh(new THREE.BoxGeometry(1.64,.03,1.1),(a+b)%2?white:mat(0x202c34),p.x,-.025,p.z);o.rotation.y=Math.atan2(f.tan.x,f.tan.z)}}
 
-// SAKURA PASS — shared game renderer, physics and circuit geometry; decorative scenery only.
+// SAKURA PASS v2 — layered blossom canopy, dry lakeside, sculpted Fuji silhouette.
 if(ACTIVE_TRACK==='sakura'){
- const blossom=[0xf2a8c3,0xffc7da,0xe78fb2,0xf8d7df].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.92,flatShading:true}));
- const trunkMat=new THREE.MeshStandardMaterial({color:0x65505a,roughness:1,flatShading:true});
- const twigGeo=new THREE.CylinderGeometry(.11,.2,3,5),flowerGeo=new THREE.IcosahedronGeometry(2.6,1);
- for(let i=0;i<145;i++){
-  const f=frame((i+.19)/145),side=i%2?1:-1,dist=WIDTH/2+7+rand(i*7+13)*20;
-  const p=f.p.clone().addScaledVector(f.normal,side*dist),scale=.8+rand(i+71)*.65;
-  mesh(new THREE.CylinderGeometry(.35*scale,.62*scale,5*scale,6),trunkMat,p.x,2.4*scale,p.z);
-  for(let k=0;k<4;k++){
-   const a=k*Math.PI*.5+rand(i*4+k),ox=Math.cos(a)*2.7*scale,oz=Math.sin(a)*2.7*scale;
-   const branch=mesh(twigGeo,trunkMat,p.x+ox*.42,5.6*scale,p.z+oz*.42);branch.scale.set(scale,scale,scale);branch.rotation.z=Math.sin(a)*.6;branch.rotation.x=Math.cos(a)*.6;
-   const crown=mesh(flowerGeo,blossom[(i+k)%4],p.x+ox,6.6*scale+(k%2)*.6,p.z+oz);crown.scale.set(1.35*scale,.8*scale,1.2*scale);
+ const blossom=[0xf5b4cb,0xffcfdf,0xeaa0bd,0xf6c3d5,0xe58faf].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.94,flatShading:true,side:THREE.DoubleSide}));
+ const woodS=new THREE.MeshStandardMaterial({color:0x58434a,roughness:1,flatShading:true});
+ const twig=new THREE.CylinderGeometry(.12,.22,1,6),leafGeo=new THREE.IcosahedronGeometry(1,1);
+ const lakeX=-335,lakeZ=0,lakeRadius=164;
+ const water=mesh(new THREE.CircleGeometry(lakeRadius,72),new THREE.MeshStandardMaterial({color:0x6399ae,roughness:.32,metalness:.16,side:THREE.DoubleSide}),lakeX,-.3,lakeZ);water.rotation.x=-Math.PI/2;
+ // Irregular, broad-branched flowering cherry trees. Individual crowns are clusters, not spheres.
+ function sakuraTree(x,z,size,seed,leanX,leanZ){
+  const height=(5.8+rand(seed+1)*2.7)*size;
+  const trunk=mesh(new THREE.CylinderGeometry(.23*size,.58*size,height*.68,7),woodS,x,height*.34,z);
+  trunk.rotation.z=leanX*.09;trunk.rotation.x=leanZ*.09;
+  for(let branch=0;branch<5;branch++){
+   const angle=branch*2.399+rand(seed+branch*3)*.65;
+   const reach=(3.2+rand(seed+branch+13)*2.2)*size;
+   const bx=Math.cos(angle)*reach+leanX*size,bz=Math.sin(angle)*reach+leanZ*size;
+   const baseY=height*.59+(branch%2)*.35*size;
+   const tipY=height+(rand(seed+branch+41)-.5)*1.5*size;
+   const vec=new THREE.Vector3(bx,tipY-baseY,bz),branchMesh=mesh(twig,woodS,x+bx*.5,baseY+vec.y*.5,z+bz*.5);
+   branchMesh.scale.set(size,vec.length(),size);branchMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),vec.normalize());
+   for(let k=0;k<4;k++){
+    const theta=k*2.4+rand(seed+branch*7+k)*.7;
+    const rr=(.6+rand(seed+k+branch*19)*1.2)*size;
+    const c=mesh(leafGeo,blossom[(seed+branch+k)%blossom.length],x+bx+Math.cos(theta)*rr,tipY+(rand(seed+branch*23+k)-.5)*1.5*size,z+bz+Math.sin(theta)*rr);
+    c.scale.set((1.35+rand(seed+k)*.55)*size,(.65+rand(seed+branch+k)*.3)*size,(1.2+rand(seed+k*3)*.5)*size);
+   }
   }
-  if(i%2===0)for(let k=0;k<5;k++){const q=f.p.clone().addScaledVector(f.normal,side*(WIDTH/2-1-rand(i+k+90)*6)).addScaledVector(f.tan,(rand(i*3+k)-.5)*8);const pet=mesh(new THREE.PlaneGeometry(.5,.32),blossom[(i+k)%4],q.x,-.014,q.z);pet.rotation.x=-Math.PI/2;pet.rotation.z=rand(i+k)*6.28}
  }
- // Roadside red striping on selected bends.
- const stripe=new THREE.MeshStandardMaterial({color:0xb42c43,roughness:.94});
- for(const section of [.12,.34,.61,.83])for(let j=0;j<12;j++){
-  const f=frame(section+j*.0018);
-  for(let side of [-1,1]){
-   const p=f.p.clone().addScaledVector(f.normal,side*(WIDTH/2-2.6));
-   const tile=mesh(new THREE.BoxGeometry(4.5,.025,1.65),j%2?stripe:white,p.x,-.029,p.z);
+ // Trees staggered and naturally grouped, with dedicated overhead blossom tunnel.
+ for(let i=0;i<125;i++){
+  const t=(i+.35)/125,f=frame(t),side=i%2?1:-1;
+  const tunnel=t>.13&&t<.36;
+  const dist=WIDTH/2+(tunnel?2.2:5)+rand(i*13+11)*(tunnel?3.7:15);
+  const p=f.p.clone().addScaledVector(f.normal,side*dist);
+  if(Math.hypot(p.x-lakeX,p.z-lakeZ)<lakeRadius+5)continue;
+  const scale=(tunnel?1.22:.84)+rand(i*7+3)*(tunnel?.4:.6);
+  sakuraTree(p.x,p.z,scale,i+12,-side*f.normal.x*(tunnel?2.6:.7),-side*f.normal.z*(tunnel?2.6:.7));
+ }
+ // Fallen petals use a single instanced mesh, preserving draw-call budget.
+ const petalGeo=new THREE.PlaneGeometry(.36,.23),count=1700;
+ const petals=new THREE.InstancedMesh(petalGeo,blossom[1],count);
+ const dummy=new THREE.Object3D();
+ for(let i=0;i<count;i++){
+  const t=rand(i*13+71),f=frame(t),cluster=t>.12&&t<.37;
+  const across=(rand(i*19+5)-.5)*(WIDTH+(cluster?8:3));
+  const p=f.p.clone().addScaledVector(f.normal,across);
+  dummy.position.set(p.x,-.023+rand(i+31)*.008,p.z);
+  dummy.rotation.set(-Math.PI/2,0,rand(i+19)*6.28);
+  dummy.scale.setScalar(.55+rand(i+44)*1.15);dummy.updateMatrix();petals.setMatrixAt(i,dummy.matrix);
+ }
+ petals.instanceMatrix.needsUpdate=true;petals.frustumCulled=false;scene.add(petals);
+ // Red and dark asphalt striping in selected drift zones.
+ const stripe=new THREE.MeshStandardMaterial({color:0xb82c42,roughness:.96});
+ for(const section of [.11,.39,.63,.85])for(let j=0;j<16;j++){
+  const f=frame(section+j*.0015);
+  for(const side of [-1,1]){
+   const p=f.p.clone().addScaledVector(f.normal,side*(WIDTH/2-2.5));
+   const tile=mesh(new THREE.BoxGeometry(4.2,.025,1.45),j%2?stripe:white,p.x,-.028,p.z);
    tile.rotation.y=Math.atan2(f.tan.x,f.tan.z);
   }
  }
- // Lake, distant Fuji-like snow summit, and skyline.
- const lakeMat=new THREE.MeshStandardMaterial({color:0x6d9eb2,roughness:.38,metalness:.1,side:THREE.DoubleSide});
- const water=mesh(new THREE.CircleGeometry(145,64),lakeMat,-245,-.35,15);water.rotation.x=-Math.PI/2;
- const mountain=mesh(new THREE.ConeGeometry(88,125,7),mat(0x7e8697),-245,61,-265);
- const cap=mesh(new THREE.ConeGeometry(30,38,7),mat(0xf2f2f4),-245,124,-265);
- for(let i=0;i<29;i++){const h=16+rand(i+80)*60;mesh(new THREE.BoxGeometry(8+rand(i)*8,h,12),mat(i%3?0x6e7d8c:0x8997a6),110+i*11,h/2,-255+(i%4)*10)}
- // Red lakeside handrail, carefully offset beyond drivable road.
- const rail=new THREE.MeshStandardMaterial({color:0xb12b35,roughness:.72});
- for(let i=0;i<65;i++){const f=frame(.52+i*.0019),p=f.p.clone().addScaledVector(f.normal,-WIDTH/2-3);mesh(new THREE.BoxGeometry(.35,2,.35),rail,p.x,1,p.z);if(i%2===0){const bar=mesh(new THREE.BoxGeometry(.22,.24,4),rail,p.x,1.85,p.z);bar.rotation.y=Math.atan2(f.tan.x,f.tan.z)}}
- // Sequential numbered corner boards, outside the road.
+ // Mount Fuji: wide, faceted sloping foothills and uneven snow line instead of a cone.
+ const mountX=-265,mountZ=-325;
+ const mountainStone=new THREE.MeshStandardMaterial({color:0x727989,roughness:1,flatShading:true,side:THREE.DoubleSide});
+ const snowMat=new THREE.MeshStandardMaterial({color:0xf3f0ed,roughness:.98,flatShading:true,side:THREE.DoubleSide});
+ function mountainShell(snowOnly){
+  const sides=48,levels=snowOnly?[{y:81,r:45},{y:99,r:34},{y:117,r:19},{y:131,r:0}]:[{y:-10,r:155},{y:12,r:140},{y:36,r:113},{y:64,r:75},{y:87,r:44},{y:112,r:23},{y:131,r:0}];
+  const v=[],ind=[];
+  for(let j=0;j<levels.length;j++)for(let i=0;i<sides;i++){
+   const a=i*2*Math.PI/sides,irregular=1+.055*Math.sin(i*2.7)+.04*Math.cos(i*4.1+j*.4);
+   const snowEdge=snowOnly&&j===0?(Math.sin(i*.9)*8+Math.sin(i*2.8)*4):0;
+   v.push(mountX+Math.cos(a)*levels[j].r*irregular,levels[j].y+snowEdge,mountZ+Math.sin(a)*levels[j].r*irregular);
+  }
+  for(let j=0;j<levels.length-1;j++)for(let i=0;i<sides;i++){const a=j*sides+i,b=j*sides+(i+1)%sides,c=(j+1)*sides+i,d=(j+1)*sides+(i+1)%sides;ind.push(a,b,c,b,d,c)}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));geo.setIndex(ind);geo.computeVertexNormals();scene.add(new THREE.Mesh(geo,snowOnly?snowMat:mountainStone));
+ }
+ mountainShell(false);mountainShell(true);
+ // Distant Japanese city skyline, kept behind the circuit.
+ for(let i=0;i<34;i++){const h=15+rand(i+80)*64;mesh(new THREE.BoxGeometry(7+rand(i)*8,h,10),mat(i%3?0x778697:0x99a5af),105+i*10,h/2,-285+(i%4)*11)}
+ // Lakeside red rail, with horizontal rails following the tangent.
+ const railMat=new THREE.MeshStandardMaterial({color:0xb92e3d,roughness:.7});
+ for(let i=0;i<78;i++){
+  const f=frame(.49+i*.0017),p=f.p.clone().addScaledVector(f.normal,-WIDTH/2-2.8);
+  mesh(new THREE.BoxGeometry(.25,2,.25),railMat,p.x,1,p.z);
+  if(i%2===0){const bar=mesh(new THREE.BoxGeometry(.23,.2,3.2),railMat,p.x,1.8,p.z);bar.rotation.y=Math.atan2(f.tan.x,f.tan.z)}
+ }
+ // Small numbered boards: use proper facing angle and dark backing.
  for(let i=0;i<10;i++){
-  const f=frame((i+.5)/10),p=f.p.clone().addScaledVector(f.normal,WIDTH/2+4);
-  mesh(new THREE.BoxGeometry(.22,2.7,.22),mat(0x22252b),p.x,1.35,p.z);
-  const c=document.createElement('canvas');c.width=128;c.height=128;const x=c.getContext('2d');x.fillStyle='#20232b';x.fillRect(0,0,128,128);x.fillStyle='#fff';x.font='bold 88px Arial';x.textAlign='center';x.fillText(String(i+1),64,95);x.fillStyle='#d62943';x.fillRect(110,0,18,128);
-  const board=new THREE.Mesh(new THREE.PlaneGeometry(2.7,2.7),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),side:THREE.DoubleSide}));board.position.set(p.x,3.1,p.z);board.rotation.y=Math.atan2(f.tan.x,f.tan.z);scene.add(board);
+  const f=frame((i+.5)/10),p=f.p.clone().addScaledVector(f.normal,WIDTH/2+4.5);
+  mesh(new THREE.BoxGeometry(.2,2.5,.2),mat(0x20232b),p.x,1.25,p.z);
+  const c=document.createElement('canvas');c.width=128;c.height=128;const x=c.getContext('2d');
+  x.fillStyle='#242832';x.fillRect(0,0,128,128);x.fillStyle='#f6f6f6';x.font='bold 82px Arial';x.textAlign='center';x.fillText(String(i+1),59,92);x.fillStyle='#e34259';x.fillRect(112,0,16,128);
+  const board=new THREE.Mesh(new THREE.PlaneGeometry(2.35,2.35),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),side:THREE.DoubleSide}));board.position.set(p.x,2.85,p.z);board.rotation.y=Math.atan2(f.tan.x,f.tan.z);scene.add(board);
  }
 }
-
 function rand(seed){let v=Math.sin(seed*127.1+78.23)*43758.5453;return v-Math.floor(v)}function tree(x,z,s,k){if(!clearOfBillboards(x,z,2.3*s+1.5))return;let trunk=mesh(new THREE.CylinderGeometry(.28*s,.45*s,3*s,5),wood,x,1.3*s,z);trunk.castShadow=true;let cone=mesh(new THREE.ConeGeometry(2.3*s,6*s,6),treeGreen[k%3],x,5*s,z);cone.castShadow=true}if(ACTIVE_TRACK==='sunset'){for(let i=0;i<210;i++){let t=i/210,f=frame(t);for(let side of [-1,1]){if(rand(i*3+side)> .48){let dist=WIDTH/2+9+rand(i*5+side)*32;let p=f.p.clone().addScaledVector(f.normal,side*dist);tree(p.x,p.z,.65+rand(i*7+side)*.9,i)}}}for(let i=0;i<26;i++){let angle=i*2.399,rad=165+rand(i+17)*65;let rock=mesh(new THREE.DodecahedronGeometry(4+rand(i+22)*8,0),mat(i%2?0xb0a080:0x92a090),Math.cos(angle)*rad,2,Math.sin(angle)*rad);rock.scale.y=.7}
 // v11.7 — Sunset Circuit scenic-only tyre stacks and hot-air balloon.
 // Positioned beyond the road edge; no collision, racing physics or track changes.
