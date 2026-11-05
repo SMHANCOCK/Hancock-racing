@@ -1546,46 +1546,35 @@ if(ACTIVE_TRACK==='sakura'){
  const twig=new THREE.CylinderGeometry(.12,.22,1,6),leafGeo=new THREE.IcosahedronGeometry(1,1);
  const lakeX=-40,lakeZ=245,lakeRadius=125;
  const water=mesh(new THREE.CircleGeometry(lakeRadius,72),new THREE.MeshStandardMaterial({color:0x6399ae,roughness:.32,metalness:.16,side:THREE.DoubleSide}),lakeX,-.3,lakeZ);water.rotation.x=-Math.PI/2;
- // Phase 1: low-cost 2D Japanese landscape. Keep Fuji and skyline unchanged.
- // No mist planes: they caused the rectangular haze across the city.
- function backdropBand(seed,flowerMode){
-  const cv=document.createElement('canvas');cv.width=1024;cv.height=256;
-  const c=cv.getContext('2d');
-  const r=n=>rand(n*7.91+seed*19.37);
-  // Transparent canvas; paint only the natural silhouette.
-  if(!flowerMode){
-   for(let i=0;i<170;i++){
-    const x=(i+.25)*1024/170+(r(i+9)-.5)*12;
-    const h=30+r(i+31)*38,cy=230-h*.4;
-    c.fillStyle=['#2c5548','#3c6851','#477657','#2b4d43'][i%4];
-    c.beginPath();c.moveTo(x-9,256);c.lineTo(x,cy-h*.7);c.lineTo(x+11,256);c.fill();
-   }
-   for(let i=0;i<135;i++){
-    const x=r(i+210)*1024,y=202+r(i+430)*34,rad=9+r(i+390)*20;
-    c.fillStyle=['#f5a3c7','#ed86b5','#ffd0df','#db83b3','#d77db0'][i%5];
-    for(let j=0;j<5;j++){
-     const a=j*2.4+r(i+j+750);
-     c.beginPath();c.arc(x+Math.cos(a)*rad*.6,y+Math.sin(a)*rad*.42,rad*(.6+r(i+j+610)*.35),0,Math.PI*2);c.fill();
-    }
-   }
-  }else{
-   // Pink shibazakura mounds in dense staggered rows, not a flat coloured rectangle.
-   for(let row=0;row<11;row++)for(let i=0;i<90;i++){
-    const x=(i+r(i+row*97))*1024/90;
-    const y=130+row*12+r(i+row*123)*11;
-    const radius=6+r(i+row*17)*8;
-    c.fillStyle=['#ed84b9','#d65ea7','#f3a6d2','#b76fc0','#f8c4dd','#de76ba'][(i+row*3)%6];
-    c.beginPath();c.ellipse(x,y,radius*1.45,radius*.6,0,0,Math.PI*2);c.fill();
+ // Phase 1 refinement: broad ground-hugging flower meadows, not floating strips.
+ // Fuji and the skyline stay untouched. No mist, fog sheets or sky panels.
+ function sakuraMeadowTexture(seed){
+  const cv=document.createElement('canvas');cv.width=1024;cv.height=512;
+  const c=cv.getContext('2d');const r=n=>rand(n*7.91+seed*19.37);
+  c.clearRect(0,0,1024,512);
+  // Soft, irregular boundaries avoid rectangular texture edges on the terrain.
+  for(let row=0;row<70;row++){
+   const y=row*8;
+   for(let i=0;i<145;i++){
+    const x=(i+r(i+row*199))*1024/145;
+    const rr=5+r(i*3+row*47)*10;
+    c.fillStyle=['#f2a6d4','#ed80c2','#cf66b1','#b56cb8','#f8c3df','#d987cb','#f0a0c9'][(i+row*3)%7];
+    c.beginPath();c.ellipse(x,y+(r(i+row*101)-.5)*7,rr*1.35,rr*.8,r(i+row*31)*3,0,Math.PI*2);c.fill();
    }
   }
   const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;
   tx.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
   return tx;
  }
- // Background forest and flower bands sit behind the bridge's red guardrails.
- // Separate planes allow real parallax while driving, at negligible draw-call cost.
- scenicSprite(backdropBand(31,false),-35,13,310,225,48,1,-2);
- scenicSprite(backdropBand(47,true),-36,2,284,215,34,1,-1);
+ // Horizontal 2D flower artwork: correct perspective and no billboard seams.
+ // Three broad beds on the dry land beside the lake, well below the bridge deck.
+ const meadowTex=sakuraMeadowTexture(47);
+ const meadowMat=new THREE.MeshBasicMaterial({map:meadowTex,transparent:true,alphaTest:.12,depthWrite:false,side:THREE.DoubleSide,fog:false});
+ for(const [x,z,w,d] of [[-178,225,105,78],[100,240,100,85],[-45,395,200,64]]){
+  const bed=new THREE.Mesh(new THREE.PlaneGeometry(w,d),meadowMat);
+  bed.rotation.x=-Math.PI/2;bed.position.set(x,-.24,z);
+  bed.renderOrder=-1;scene.add(bed);
+ }
  // Irregular, broad-branched flowering cherry trees. Individual crowns are clusters, not spheres.
  function sakuraTree(x,z,size,seed,leanX,leanZ){
   const height=(5.8+rand(seed+1)*2.7)*size;
