@@ -1042,11 +1042,17 @@ sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-18
 const mat=(c,rough=1)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,flatShading:true});const grass=mat(ACTIVE_TRACK==='london'?0x333a45:0x72b96a),road=mat(ACTIVE_TRACK==='london'?0x333b46:0x48525a),shoulder=mat(ACTIVE_TRACK==='london'?0x60616a:0xf1db9c),white=mat(0xfff2d5),red=mat(0xe86753),treeGreen=[mat(0x3d9165),mat(0x58a66b),mat(0x2f7e5e)],wood=mat(0x856b48);
 function mesh(geo,m,x=0,y=0,z=0){let o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.receiveShadow=true;scene.add(o);return o}if(ACTIVE_TRACK!=='cliff')mesh(new THREE.PlaneGeometry(700,700),grass,0,-.45,0).rotation.x=-Math.PI/2;
 // Revised asymmetric circuit: tighter eastern switchback and northwest corner, with a wider 28-unit road.
-const points=ACTIVE_TRACK==='sakura'?[[0,-120],[43,-130],[84,-119],[111,-97],[137,-86],[164,-52],[168,-8],[149,24],[158,51],[121,77],[91,93],[53,88],[22,108],[-25,103],[-57,87],[-91,91],[-125,55],[-137,20],[-126,-12],[-141,-43],[-108,-82],[-70,-107],[-35,-105]]:ACTIVE_TRACK==='london'?
+const points=ACTIVE_TRACK==='sakura'?[[0,-120],[43,-130],[84,-119],[117,-101],[145,-74],[164,-39],[168,-8],[153,27],[137,54],[110,77],[76,94],[40,103],[4,104],[-32,100],[-67,91],[-100,70],[-127,42],[-138,9],[-134,-27],[-119,-58],[-91,-88],[-58,-110],[-25,-120]]:ACTIVE_TRACK==='london'?
 [[0,-105],[46,-108],[91,-93],[132,-65],[146,-30],[126,2],[93,12],[75,39],[91,70],[129,84],[147,111],[130,145],[90,160],[49,145],[24,112],[-13,108],[-41,135],[-78,153],[-120,136],[-146,102],[-139,68],[-108,50],[-89,17],[-111,-13],[-148,-33],[-156,-70],[-125,-105],[-80,-121],[-39,-108]]:ACTIVE_TRACK==='cliff'?
 [[0,-89],[27,-100],[57,-99],[91,-82],[115,-56],[132,-25],[126,10],[111,38],[86,63],[58,70],[31,87],[-2,92],[-37,75],[-68,87],[-99,76],[-127,53],[-137,20],[-130,-14],[-109,-39],[-91,-70],[-63,-91],[-32,-101]]:
 [[0,-65],[44,-70],[91,-46],[105,-7],[96,25],[70,48],[47,65],[7,73],[-35,59],[-72,72],[-102,55],[-112,34],[-105,-10],[-79,-53],[-39,-74]];const N=points.length;
-function spline(t){let f=((t%1)+1)%1*N,i=Math.floor(f),u=f-i;const a=points[(i-1+N)%N],b=points[i],c=points[(i+1)%N],d=points[(i+2)%N];let fn=k=>.5*((2*b[k])+(-a[k]+c[k])*u+(2*a[k]-5*b[k]+4*c[k]-d[k])*u*u+(-a[k]+3*b[k]-3*c[k]+d[k])*u*u*u);return new THREE.Vector3(fn(0),0,fn(1))}function frame(t){let p=spline(t),tan=spline(t+.0002).sub(spline(t-.0002)).normalize(),normal=new THREE.Vector3(-tan.z,0,tan.x);return {p,tan,normal}}const WIDTH=ACTIVE_TRACK==='london'?32:ACTIVE_TRACK==='cliff'?23:28,SEG=600;function ribbon(offsetA,offsetB,y,material){let v=[],idx=[];for(let i=0;i<=SEG;i++){let f=frame(i/SEG);for(let off of [offsetA,offsetB]){let p=f.p.clone().addScaledVector(f.normal,off);v.push(p.x,y,p.z)}}for(let i=0;i<SEG;i++){let j=i*2;idx.push(j,j+1,j+2,j+1,j+3,j+2)}let g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();mesh(g,material)}ribbon(-WIDTH/2-2,WIDTH/2+2,-.18,shoulder);ribbon(-WIDTH/2,WIDTH/2,-.11,road);ribbon(-WIDTH/2,-WIDTH/2+.6,-.07,red);ribbon(WIDTH/2-.6,WIDTH/2,-.07,red);
+function sakuraHeight(t){
+ const x=((t%1)+1)%1;
+ // Smooth climb, elevated ridge and progressive downhill, with level transitions.
+ const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v)};
+ return 17*(smooth((x-.34)/.10)-smooth((x-.59)/.12));
+}
+function spline(t){let f=((t%1)+1)%1*N,i=Math.floor(f),u=f-i;const a=points[(i-1+N)%N],b=points[i],c=points[(i+1)%N],d=points[(i+2)%N];let fn=k=>.5*((2*b[k])+(-a[k]+c[k])*u+(2*a[k]-5*b[k]+4*c[k]-d[k])*u*u+(-a[k]+3*b[k]-3*c[k]+d[k])*u*u*u);return new THREE.Vector3(fn(0),ACTIVE_TRACK==='sakura'?sakuraHeight(t):0,fn(1))}function frame(t){let p=spline(t),tan=spline(t+.0002).sub(spline(t-.0002)).normalize(),normal=new THREE.Vector3(-tan.z,0,tan.x);return {p,tan,normal}}const WIDTH=ACTIVE_TRACK==='london'?32:ACTIVE_TRACK==='cliff'?23:28,SEG=600;function ribbon(offsetA,offsetB,y,material){let v=[],idx=[];for(let i=0;i<=SEG;i++){let f=frame(i/SEG);for(let off of [offsetA,offsetB]){let p=f.p.clone().addScaledVector(f.normal,off);v.push(p.x,y+f.p.y,p.z)}}for(let i=0;i<SEG;i++){let j=i*2;idx.push(j,j+1,j+2,j+1,j+3,j+2)}let g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();mesh(g,material)}ribbon(-WIDTH/2-2,WIDTH/2+2,-.18,shoulder);ribbon(-WIDTH/2,WIDTH/2,-.11,road);ribbon(-WIDTH/2,-WIDTH/2+.6,-.07,red);ribbon(WIDTH/2-.6,WIDTH/2,-.07,red);
 
 // CLIFFHANGER: sheer rock wall on the right, open plunge into sea on the left.
 // Road is elevated above a separate ocean surface, without invisible sea-side guardrails.
@@ -1579,7 +1585,7 @@ if(ACTIVE_TRACK==='sakura'){
   const t=rand(i*13+71),f=frame(t),cluster=t>.12&&t<.37;
   const across=(rand(i*19+5)-.5)*(WIDTH+(cluster?8:3));
   const p=f.p.clone().addScaledVector(f.normal,across);
-  dummy.position.set(p.x,-.023+rand(i+31)*.008,p.z);
+  dummy.position.set(p.x,f.p.y-.023+rand(i+31)*.008,p.z);
   dummy.rotation.set(-Math.PI/2,0,rand(i+19)*6.28);
   dummy.scale.setScalar(.55+rand(i+44)*1.15);dummy.updateMatrix();petals.setMatrixAt(i,dummy.matrix);
  }
@@ -1603,6 +1609,32 @@ if(ACTIVE_TRACK==='sakura'){
  fallMesh.frustumCulled=false;scene.add(fallMesh);
  // Share one animation hook with the existing rendering loop, no HUD changes.
  scene.userData.animateSakuraFall=animateSakuraFall;
+ // Layered woodland fills the empty ground behind both scenery zones.
+ const undergrowth=[0x496d3c,0x587e47,0x355d3e,0x718a4a].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:1,flatShading:true}));
+ const bushGeo=new THREE.IcosahedronGeometry(1,0);
+ const bushes=new THREE.InstancedMesh(bushGeo,undergrowth[0],780),bushDummy=new THREE.Object3D();
+ for(let i=0;i<780;i++){
+  const t=rand(i*17+9),f=frame(t),side=i%2?1:-1;
+  const p=f.p.clone().addScaledVector(f.normal,side*(WIDTH/2+17+rand(i*23+1)*85));
+  if(Math.hypot(p.x-lakeX,p.z-lakeZ)<lakeRadius+8)continue;
+  bushDummy.position.set(p.x,.9,p.z);bushDummy.scale.set(2+rand(i)*3,1.3+rand(i+3)*2.1,2+rand(i+7)*3);bushDummy.rotation.y=rand(i+12)*6.28;bushDummy.updateMatrix();bushes.setMatrixAt(i,bushDummy.matrix);
+  bushes.setColorAt(i,new THREE.Color([0x496d3c,0x587e47,0x355d3e,0x718a4a][i%4]));
+ }
+ bushes.instanceMatrix.needsUpdate=true;if(bushes.instanceColor)bushes.instanceColor.needsUpdate=true;scene.add(bushes);
+ // Exposed ridge: visible steep drop and no roadside barrier, reset on fall.
+ const cliffRock=new THREE.MeshStandardMaterial({color:0x766b63,roughness:1,flatShading:true,side:THREE.DoubleSide});
+ for(let side of [-1,1]){
+  const verts=[],indices=[],steps=135;
+  for(let j=0;j<=steps;j++){
+   const t=.38+j/steps*.30,f=frame(t);
+   for(const [offset,drop] of [[WIDTH/2+1,0],[WIDTH/2+9,-7],[WIDTH/2+20,-20]]){
+    const p=f.p.clone().addScaledVector(f.normal,side*offset);
+    verts.push(p.x,f.p.y+drop,p.z);
+   }
+  }
+  for(let j=0;j<steps;j++)for(let k=0;k<2;k++){const q=j*3+k;indices.push(q,q+3,q+1,q+1,q+3,q+4)}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(indices);geo.computeVertexNormals();scene.add(new THREE.Mesh(geo,cliffRock));
+ }
  // Thick mixed-green woodland between the flowering trees and the city.
  const greenLeaves=[0x386b43,0x477e48,0x285b3c,0x608d51].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:1,flatShading:true}));
  const evergreenGeo=new THREE.IcosahedronGeometry(1,1);
@@ -1636,7 +1668,7 @@ if(ACTIVE_TRACK==='sakura'){
   const f=frame(section+j*.0015);
   for(const side of [-1,1]){
    const p=f.p.clone().addScaledVector(f.normal,side*(WIDTH/2-2.5));
-   const tile=mesh(new THREE.BoxGeometry(4.2,.025,1.45),j%2?stripe:white,p.x,-.028,p.z);
+   const tile=mesh(new THREE.BoxGeometry(4.2,.025,1.45),j%2?stripe:white,p.x,f.p.y-.028,p.z);
    tile.rotation.y=Math.atan2(f.tan.x,f.tan.z);
   }
  }
@@ -1662,16 +1694,16 @@ if(ACTIVE_TRACK==='sakura'){
  const railMat=new THREE.MeshStandardMaterial({color:0xb92e3d,roughness:.7});
  for(let i=0;i<78;i++){
   const f=frame(.49+i*.0017),p=f.p.clone().addScaledVector(f.normal,-WIDTH/2-2.8);
-  mesh(new THREE.BoxGeometry(.25,2,.25),railMat,p.x,1,p.z);
-  if(i%2===0){const bar=mesh(new THREE.BoxGeometry(.23,.2,3.2),railMat,p.x,1.8,p.z);bar.rotation.y=Math.atan2(f.tan.x,f.tan.z)}
+  mesh(new THREE.BoxGeometry(.25,2,.25),railMat,p.x,f.p.y+1,p.z);
+  if(i%2===0){const bar=mesh(new THREE.BoxGeometry(.23,.2,3.2),railMat,p.x,f.p.y+1.8,p.z);bar.rotation.y=Math.atan2(f.tan.x,f.tan.z)}
  }
  // Small numbered boards: use proper facing angle and dark backing.
  for(let i=0;i<10;i++){
   const f=frame((i+.5)/10),p=f.p.clone().addScaledVector(f.normal,WIDTH/2+4.5);
-  mesh(new THREE.BoxGeometry(.2,2.5,.2),mat(0x20232b),p.x,1.25,p.z);
+  mesh(new THREE.BoxGeometry(.2,2.5,.2),mat(0x20232b),p.x,f.p.y+1.25,p.z);
   const c=document.createElement('canvas');c.width=128;c.height=128;const x=c.getContext('2d');
   x.fillStyle='#242832';x.fillRect(0,0,128,128);x.fillStyle='#f6f6f6';x.font='bold 82px Arial';x.textAlign='center';x.fillText(String(i+1),59,92);x.fillStyle='#e34259';x.fillRect(112,0,16,128);
-  const board=new THREE.Mesh(new THREE.PlaneGeometry(2.35,2.35),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),side:THREE.DoubleSide}));board.position.set(p.x,2.85,p.z);board.rotation.y=Math.atan2(f.tan.x,f.tan.z);scene.add(board);
+  const board=new THREE.Mesh(new THREE.PlaneGeometry(2.35,2.35),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),side:THREE.DoubleSide}));board.position.set(p.x,f.p.y+2.85,p.z);board.rotation.y=Math.atan2(f.tan.x,f.tan.z);scene.add(board);
  }
 }
 function rand(seed){let v=Math.sin(seed*127.1+78.23)*43758.5453;return v-Math.floor(v)}function tree(x,z,s,k){if(!clearOfBillboards(x,z,2.3*s+1.5))return;let trunk=mesh(new THREE.CylinderGeometry(.28*s,.45*s,3*s,5),wood,x,1.3*s,z);trunk.castShadow=true;let cone=mesh(new THREE.ConeGeometry(2.3*s,6*s,6),treeGreen[k%3],x,5*s,z);cone.castShadow=true}if(ACTIVE_TRACK==='sunset'){for(let i=0;i<210;i++){let t=i/210,f=frame(t);for(let side of [-1,1]){if(rand(i*3+side)> .48){let dist=WIDTH/2+9+rand(i*5+side)*32;let p=f.p.clone().addScaledVector(f.normal,side*dist);tree(p.x,p.z,.65+rand(i*7+side)*.9,i)}}}for(let i=0;i<26;i++){let angle=i*2.399,rad=165+rand(i+17)*65;let rock=mesh(new THREE.DodecahedronGeometry(4+rand(i+22)*8,0),mat(i%2?0xb0a080:0x92a090),Math.cos(angle)*rad,2,Math.sin(angle)*rad);rock.scale.y=.7}
@@ -1822,7 +1854,7 @@ function nearestTrack(pos,guess){
  }
  return bestIndex/SEG;
 }
-function placeVehicle(v){let f=frame(v.t),p=v===player&&v.worldPos?v.worldPos:f.p.clone().addScaledVector(f.normal,v.offset);v.group.position.set(p.x,0,p.z);v.group.rotation.y=v===player?v.worldHeading:Math.atan2(f.tan.x,f.tan.z)+(v.angle||0)}function start(m){cameraLookTarget=null;document.body.classList.toggle("trial-mode",m==="trial");$("pause").textContent="☰";$("pause").setAttribute("aria-label","Open race menu");updateGoldConfetti(false);$('menu').classList.remove('race-pause','finished','trialResults');if(m==='trial')boardStartRun();else activeRun=null;mode=m;running=true;paused=false;raceTime=0;completedLaps=0;finishTime=0;Object.assign(player,{cliffFalling:0,cliffFallT:0,barrierBounceTimer:0,barrierBounceSide:0,barrierBounceStrength:0,t:.014,prevT:.014,offset:-2.8,speed:0,angle:0,offroadTime:0,wrongWayTime:0,skid:0,driftDirection:0,drifting:false,charge:0,chain:0,reserve:0,boost:0,driftAwarded:false,overheated:false,flickDir:0,flickTimer:0,prevSteer:0,driftHold:0,spinPressure:0,driftTwist:0,spinTimer:0,spinDirection:0,spinStartHeading:0,spinTargetHeading:0,spinTotal:0,gripStress:0,wasGas:false,liftWindow:0,lap:1,progress:0,checkpoints:[false,false,false],lapStart:0,finished:false,best:Infinity,runBestLap:Infinity});let saved=localStorage.getItem('drift-rush-best-lap-'+ACTIVE_TRACK);if(saved)player.best=Number(saved);ais.forEach((a,i)=>Object.assign(a,{t:.009-i*.004,offset:((i%2)*2-1)*3.1,speed:0,lap:1,progress:0}));{let f=frame(player.t);player.worldPos=f.p.clone().addScaledVector(f.normal,player.offset);player.worldHeading=Math.atan2(f.tan.x,f.tan.z)}player.group.visible=true;ais.forEach(a=>a.group.visible=m==='race');placeVehicle(player);ais.forEach(placeVehicle);$('menu').classList.remove('finished');$('menu').style.display='none';$('pause').style.display='block';starting=true;countdown=3;goDisplay=0;showStartLights(3)}
+function placeVehicle(v){let f=frame(v.t),p=v===player&&v.worldPos?v.worldPos:f.p.clone().addScaledVector(f.normal,v.offset);v.group.position.set(p.x,ACTIVE_TRACK==='sakura'?f.p.y:0,p.z);v.group.rotation.y=v===player?v.worldHeading:Math.atan2(f.tan.x,f.tan.z)+(v.angle||0)}function start(m){cameraLookTarget=null;document.body.classList.toggle("trial-mode",m==="trial");$("pause").textContent="☰";$("pause").setAttribute("aria-label","Open race menu");updateGoldConfetti(false);$('menu').classList.remove('race-pause','finished','trialResults');if(m==='trial')boardStartRun();else activeRun=null;mode=m;running=true;paused=false;raceTime=0;completedLaps=0;finishTime=0;Object.assign(player,{cliffFalling:0,cliffFallT:0,barrierBounceTimer:0,barrierBounceSide:0,barrierBounceStrength:0,t:.014,prevT:.014,offset:-2.8,speed:0,angle:0,offroadTime:0,wrongWayTime:0,skid:0,driftDirection:0,drifting:false,charge:0,chain:0,reserve:0,boost:0,driftAwarded:false,overheated:false,flickDir:0,flickTimer:0,prevSteer:0,driftHold:0,spinPressure:0,driftTwist:0,spinTimer:0,spinDirection:0,spinStartHeading:0,spinTargetHeading:0,spinTotal:0,gripStress:0,wasGas:false,liftWindow:0,lap:1,progress:0,checkpoints:[false,false,false],lapStart:0,finished:false,best:Infinity,runBestLap:Infinity});let saved=localStorage.getItem('drift-rush-best-lap-'+ACTIVE_TRACK);if(saved)player.best=Number(saved);ais.forEach((a,i)=>Object.assign(a,{t:.009-i*.004,offset:((i%2)*2-1)*3.1,speed:0,lap:1,progress:0}));{let f=frame(player.t);player.worldPos=f.p.clone().addScaledVector(f.normal,player.offset);player.worldHeading=Math.atan2(f.tan.x,f.tan.z)}player.group.visible=true;ais.forEach(a=>a.group.visible=m==='race');placeVehicle(player);ais.forEach(placeVehicle);$('menu').classList.remove('finished');$('menu').style.display='none';$('pause').style.display='block';starting=true;countdown=3;goDisplay=0;showStartLights(3)}
 function showStartLights(n){const el=$('startLights');el.style.display='flex';const lamps=el.querySelectorAll('.lamp');lamps.forEach((lamp,i)=>lamp.classList.toggle('on',n===0?i===3:i<4-n));el.querySelector('.count').textContent=n===0?'GO!':String(n)}
 function updateGoldConfetti(isGold){
  let layer=document.getElementById('goldConfetti');
@@ -2012,18 +2044,18 @@ function updateCliffSplash(dt){
 const HUD_PERF_TEST=true;
 let hudRefreshAccumulator=0;let lastHudCharge=-1,lastHudEdge=-1,lastHudSpeed=-1;
 function update(dt){raceTime+=dt;if(cliffSplash&&!(ACTIVE_TRACK==='cliff'&&player.cliffFalling>0))updateCliffSplash(dt);const ctl=input(),p=player;ctl.brake=ctl.brake&&!ctl.gas;
- if(ACTIVE_TRACK==='cliff'&&p.cliffFalling>0){
+ if((ACTIVE_TRACK==='cliff'||ACTIVE_TRACK==='sakura')&&p.cliffFalling>0){
    p.cliffFalling=Math.max(0,p.cliffFalling-dt);
    const elapsed=1.25-p.cliffFalling;
    p.group.position.copy(p.cliffFallPos);
    // Carry the kart outward over the exposed edge before dropping below the road.
    const fallNormal=frame(p.cliffFallT).normal;
-   p.group.position.addScaledVector(fallNormal,-elapsed*7);
-   p.group.position.y=-(2*elapsed+11*elapsed*elapsed);
+   p.group.position.addScaledVector(fallNormal,ACTIVE_TRACK==='sakura'?Math.sign(p.offset||1)*elapsed*7:-elapsed*7);
+   p.group.position.y=(ACTIVE_TRACK==='sakura'?sakuraHeight(p.cliffFallT):0)-(2*elapsed+11*elapsed*elapsed);
    p.group.rotation.y=p.cliffFallHeading+elapsed*2.2;
    p.group.rotation.z=elapsed*2.8;
    // Ocean surface is at y=-15. Trigger exactly once when the kart reaches it.
-   if(!p.cliffSplashTriggered && p.group.position.y<=-14.6){p.cliffSplashTriggered=true;spawnCliffSplash(p.group.position);flash('🌊 SPLASH!')}
+   if(ACTIVE_TRACK==='cliff'&&!p.cliffSplashTriggered && p.group.position.y<=-14.6){p.cliffSplashTriggered=true;spawnCliffSplash(p.group.position);flash('🌊 SPLASH!')}
    updateCliffSplash(dt);
    if(p.cliffFalling===0){
      const safe=frame(p.cliffFallT);
@@ -2172,7 +2204,7 @@ p.offset=p.worldPos.clone().sub(f.p).dot(f.normal);
 // V4.5: physical track-edge collision. The barrier sits beyond the kerbs and
 // shoulder, and is a hard limit for the kart centre, accounting for kart width.
 // Resolve penetration in track-normal space instead of teleporting to the centre.
-const barrierLimit=ACTIVE_TRACK==='sunset'||ACTIVE_TRACK==='cliff'?Infinity:WIDTH/2+3.6-1.05;
+const barrierLimit=ACTIVE_TRACK==='sunset'||ACTIVE_TRACK==='cliff'||ACTIVE_TRACK==='sakura'?Infinity:WIDTH/2+3.6-1.05;
 if(Math.abs(p.offset)>barrierLimit){
   const side=Math.sign(p.offset);
   const penetration=Math.abs(p.offset)-barrierLimit;
@@ -2223,6 +2255,11 @@ if(ACTIVE_TRACK==='cliff'){
  }
  p.cliffWallFlashCooldown=Math.max(0,(p.cliffWallFlashCooldown||0)-dt);
  if(p.offset<-(WIDTH/2+1.8) && !p.cliffFalling){p.cliffSplashTriggered=false;p.cliffFalling=1.25;p.cliffFallT=p.t;p.cliffFallPos=p.worldPos.clone();p.cliffFallHeading=p.worldHeading;p.speed=0;p.charge=0;p.reserve=0;p.skid=0;flash('OVER THE EDGE!')}
+}
+if(ACTIVE_TRACK==='sakura' && p.cliffFalling<=0 && p.t>.37 && p.t<.69 && Math.abs(p.offset)>WIDTH/2+1.6){
+ p.cliffSplashTriggered=true;p.cliffFalling=1.25;p.cliffFallT=p.t;
+ p.cliffFallPos=p.worldPos.clone();p.cliffFallHeading=p.worldHeading;
+ p.speed=0;p.charge=0;p.reserve=0;p.skid=0;flash('OVER THE EDGE!');
 }
 let tangentAngle=Math.atan2(f.tan.x,f.tan.z);
 let angleDifference=Math.atan2(Math.sin(p.worldHeading-tangentAngle),Math.cos(p.worldHeading-tangentAngle));
@@ -2323,7 +2360,7 @@ if(ACTIVE_TRACK==='cliff'&&window.cliffWaves){
  }
 }
 if(ACTIVE_TRACK==='cliff'&&window.cliffSharks){const t=performance.now()*.001;for(const shark of window.cliffSharks){const a=t*shark.speed+shark.phase;shark.group.position.x=shark.origin.x+Math.cos(a)*5;shark.group.position.z=shark.origin.z+Math.sin(a)*5;shark.group.position.y=shark.origin.y+Math.sin(a*2)*.22;shark.group.rotation.y=a+Math.PI/2}}let p=player;let heading=new THREE.Vector3(Math.sin(p.group.rotation.y),0,Math.cos(p.group.rotation.y));
-if(ACTIVE_TRACK==='cliff'&&p.cliffFalling>0){
+if((ACTIVE_TRACK==='cliff'||ACTIVE_TRACK==='sakura')&&p.cliffFalling>0){
  // Keep the camera above the road looking outward at the falling kart.
  // Following the kart underground made the landscape clip across the screen.
  const f=frame(p.cliffFallT),edge=f.p.clone().addScaledVector(f.normal,-WIDTH/2+3);
