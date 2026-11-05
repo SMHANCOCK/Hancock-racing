@@ -1714,8 +1714,8 @@ if(ACTIVE_TRACK==='sakura'){
  fetch('https://api.github.com/repos/SMHANCOCK/Hancock-racing/contents/Assets?ref=main')
   .then(r=>{if(!r.ok)throw Error('GitHub Assets '+r.status);return r.json()})
   .then(files=>{
-   const pngs=files.filter(f=>/\\.png$/i.test(f.name));
-   const mountain=pngs.find(f=>/^file_0000000052888246b6b0d729ad050d7a\\.png$/i.test(f.name)) || pngs.find(f=>/fuji|mountain/i.test(f.name));
+   const pngs=files.filter(f=>/\.png$/i.test(f.name));
+   const mountain=pngs.find(f=>/^file_0000000052888246b6b0d729ad050d7a\.png$/i.test(f.name)) || pngs.find(f=>/fuji|mountain/i.test(f.name));
    const city=pngs.find(f=>/a_wide_panoramic_city_skyline_cutout/i.test(f.name)) || pngs.find(f=>/skyline|cityscape/i.test(f.name));
    if(mountain)loadSakuraBackdrop(mountain.download_url,-55,91,495,330,204,1);
    else console.warn('Sakura Mount Fuji PNG missing from Assets');
