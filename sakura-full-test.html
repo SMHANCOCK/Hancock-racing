@@ -1042,7 +1042,7 @@ sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-18
 const mat=(c,rough=1)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,flatShading:true});const grass=mat(ACTIVE_TRACK==='london'?0x333a45:0x72b96a),road=mat(ACTIVE_TRACK==='london'?0x333b46:0x48525a),shoulder=mat(ACTIVE_TRACK==='london'?0x60616a:0xf1db9c),white=mat(0xfff2d5),red=mat(0xe86753),treeGreen=[mat(0x3d9165),mat(0x58a66b),mat(0x2f7e5e)],wood=mat(0x856b48);
 function mesh(geo,m,x=0,y=0,z=0){let o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.receiveShadow=true;scene.add(o);return o}if(ACTIVE_TRACK!=='cliff')mesh(new THREE.PlaneGeometry(700,700),grass,0,-.45,0).rotation.x=-Math.PI/2;
 // Revised asymmetric circuit: tighter eastern switchback and northwest corner, with a wider 28-unit road.
-const points=ACTIVE_TRACK==='sakura'?[[0,-120],[55,-127],[112,-103],[155,-59],[166,-5],[142,49],[92,91],[30,106],[-35,101],[-93,74],[-137,24],[-139,-32],[-105,-84],[-53,-116]]:ACTIVE_TRACK==='london'?
+const points=ACTIVE_TRACK==='sakura'?[[0,-120],[43,-130],[84,-119],[111,-97],[137,-86],[164,-52],[168,-8],[149,24],[158,51],[121,77],[91,93],[53,88],[22,108],[-25,103],[-57,87],[-91,91],[-125,55],[-137,20],[-126,-12],[-141,-43],[-108,-82],[-70,-107],[-35,-105]]:ACTIVE_TRACK==='london'?
 [[0,-105],[46,-108],[91,-93],[132,-65],[146,-30],[126,2],[93,12],[75,39],[91,70],[129,84],[147,111],[130,145],[90,160],[49,145],[24,112],[-13,108],[-41,135],[-78,153],[-120,136],[-146,102],[-139,68],[-108,50],[-89,17],[-111,-13],[-148,-33],[-156,-70],[-125,-105],[-80,-121],[-39,-108]]:ACTIVE_TRACK==='cliff'?
 [[0,-89],[27,-100],[57,-99],[91,-82],[115,-56],[132,-25],[126,10],[111,38],[86,63],[58,70],[31,87],[-2,92],[-37,75],[-68,87],[-99,76],[-127,53],[-137,20],[-130,-14],[-109,-39],[-91,-70],[-63,-91],[-32,-101]]:
 [[0,-65],[44,-70],[91,-46],[105,-7],[96,25],[70,48],[47,65],[7,73],[-35,59],[-72,72],[-102,55],[-112,34],[-105,-10],[-79,-53],[-39,-74]];const N=points.length;
@@ -1538,7 +1538,7 @@ if(ACTIVE_TRACK==='sakura'){
  const blossom=[0xf5b4cb,0xffcfdf,0xeaa0bd,0xf6c3d5,0xe58faf].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.94,flatShading:true,side:THREE.DoubleSide}));
  const woodS=new THREE.MeshStandardMaterial({color:0x58434a,roughness:1,flatShading:true});
  const twig=new THREE.CylinderGeometry(.12,.22,1,6),leafGeo=new THREE.IcosahedronGeometry(1,1);
- const lakeX=-335,lakeZ=0,lakeRadius=164;
+ const lakeX=-345,lakeZ=-18,lakeRadius=172;
  const water=mesh(new THREE.CircleGeometry(lakeRadius,72),new THREE.MeshStandardMaterial({color:0x6399ae,roughness:.32,metalness:.16,side:THREE.DoubleSide}),lakeX,-.3,lakeZ);water.rotation.x=-Math.PI/2;
  // Irregular, broad-branched flowering cherry trees. Individual crowns are clusters, not spheres.
  function sakuraTree(x,z,size,seed,leanX,leanZ){
@@ -1562,13 +1562,13 @@ if(ACTIVE_TRACK==='sakura'){
   }
  }
  // Trees staggered and naturally grouped, with dedicated overhead blossom tunnel.
- for(let i=0;i<125;i++){
-  const t=(i+.35)/125,f=frame(t),side=i%2?1:-1;
-  const tunnel=t>.13&&t<.36;
-  const dist=WIDTH/2+(tunnel?2.2:5)+rand(i*13+11)*(tunnel?3.7:15);
+ for(let i=0;i<215;i++){
+  const t=(i+.35)/215,f=frame(t),side=i%2?1:-1;
+  const tunnel=t>.10&&t<.46;
+  const dist=WIDTH/2+(tunnel?1.4:5)+rand(i*13+11)*(tunnel?3.2:17);
   const p=f.p.clone().addScaledVector(f.normal,side*dist);
   if(Math.hypot(p.x-lakeX,p.z-lakeZ)<lakeRadius+5)continue;
-  const scale=(tunnel?1.22:.84)+rand(i*7+3)*(tunnel?.4:.6);
+  const scale=(tunnel?1.38:.86)+rand(i*7+3)*(tunnel?.48:.65);
   sakuraTree(p.x,p.z,scale,i+12,-side*f.normal.x*(tunnel?2.6:.7),-side*f.normal.z*(tunnel?2.6:.7));
  }
  // Fallen petals use a single instanced mesh, preserving draw-call budget.
@@ -1584,6 +1584,52 @@ if(ACTIVE_TRACK==='sakura'){
   dummy.scale.setScalar(.55+rand(i+44)*1.15);dummy.updateMatrix();petals.setMatrixAt(i,dummy.matrix);
  }
  petals.instanceMatrix.needsUpdate=true;petals.frustumCulled=false;scene.add(petals);
+
+ // Falling blossom: batched GPU-friendly particles updated only in the blossom tunnel.
+ const fallCount=420,fallGeo=new THREE.PlaneGeometry(.37,.24),fallMesh=new THREE.InstancedMesh(fallGeo,blossom[2],fallCount);
+ const fallData=[],fallDummy=new THREE.Object3D();
+ for(let i=0;i<fallCount;i++){
+  const t=.10+rand(i*17+3)*.36,f=frame(t),p=f.p.clone().addScaledVector(f.normal,(rand(i*11+7)-.5)*(WIDTH+8));
+  fallData.push({x:p.x,z:p.z,top:4+rand(i*3+8)*10,phase:rand(i*5+19)*20,speed:1.2+rand(i*7+23)*2.1});
+ }
+ function animateSakuraFall(time){
+  for(let i=0;i<fallCount;i++){
+   const q=fallData[i],y=((q.top-(time*q.speed+q.phase))%q.top+q.top)%q.top;
+   fallDummy.position.set(q.x+Math.sin(time*.8+i)*.7,y+.1,q.z+Math.cos(time*.7+i)*.6);
+   fallDummy.rotation.set(time*.4+i,-time*.3+i,time*.6+i);fallDummy.scale.setScalar(.6+(i%5)*.12);fallDummy.updateMatrix();fallMesh.setMatrixAt(i,fallDummy.matrix);
+  }
+  fallMesh.instanceMatrix.needsUpdate=true;
+ }
+ fallMesh.frustumCulled=false;scene.add(fallMesh);
+ // Share one animation hook with the existing rendering loop, no HUD changes.
+ scene.userData.animateSakuraFall=animateSakuraFall;
+ // Thick mixed-green woodland between the flowering trees and the city.
+ const greenLeaves=[0x386b43,0x477e48,0x285b3c,0x608d51].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:1,flatShading:true}));
+ const evergreenGeo=new THREE.IcosahedronGeometry(1,1);
+ for(let i=0;i<155;i++){
+  const x=95+rand(i*3+1)*235,z=-175-rand(i*5+3)*85;
+  if(Math.hypot(x-lakeX,z-lakeZ)<lakeRadius+5)continue;
+  const h=8+rand(i*7+9)*12;
+  mesh(new THREE.CylinderGeometry(.3,.55,h*.6,5),woodS,x,h*.3,z);
+  for(let j=0;j<3;j++){const crown=mesh(evergreenGeo,greenLeaves[(i+j)%4],x+(j-1)*1.7,h*.65+j*.85,z+(j%2)*1.3);crown.scale.set(3.4+j*.5,3.5+j*.5,3.2+j*.5)}
+ }
+ // Five-storey Japanese pagoda, above the wooded skyline.
+ const temple=new THREE.Group();temple.position.set(190,0,-237);scene.add(temple);
+ const templeWall=new THREE.MeshStandardMaterial({color:0xd6c3a7,roughness:1});
+ const templeRoof=new THREE.MeshStandardMaterial({color:0x343e42,roughness:.88,flatShading:true});
+ const templeTrim=new THREE.MeshStandardMaterial({color:0x9b3538,roughness:.85});
+ function templeBox(w,h,d,y,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.y=y;temple.add(o)}
+ for(let level=0;level<5;level++){
+  const base=level*5.2,scale=1-level*.12;
+  templeBox(11*scale,4.3,10*scale,base+2.1,templeWall);
+  templeBox(12*scale,.45,11*scale,base+.4,templeTrim);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(10.2*scale,3.3,4),templeRoof);roof.position.y=base+5.2;roof.rotation.y=Math.PI/4;temple.add(roof);
+  const eave=new THREE.Mesh(new THREE.BoxGeometry(15*scale,.4,14*scale),templeRoof);eave.position.y=base+4.35;temple.add(eave);
+ }
+ templeBox(.55,5,.55,28,templeTrim);
+ // Mountain foothill mist: layered translucent bands instead of expensive volumetrics.
+ const mistMat=new THREE.MeshBasicMaterial({color:0xe5dce0,transparent:true,opacity:.18,depthWrite:false,side:THREE.DoubleSide});
+ for(let i=0;i<6;i++){const mist=new THREE.Mesh(new THREE.PlaneGeometry(165+i*18,12+i*3),mistMat.clone());mist.material.opacity=.09+(i%3)*.045;mist.position.set(-355,9+i*5,-295+i*8);scene.add(mist)}
  // Red and dark asphalt striping in selected drift zones.
  const stripe=new THREE.MeshStandardMaterial({color:0xb82c42,roughness:.96});
  for(const section of [.11,.39,.63,.85])for(let j=0;j<16;j++){
@@ -1595,7 +1641,7 @@ if(ACTIVE_TRACK==='sakura'){
   }
  }
  // Mount Fuji: wide, faceted sloping foothills and uneven snow line instead of a cone.
- const mountX=-265,mountZ=-325;
+ const mountX=-355,mountZ=-340;
  const mountainStone=new THREE.MeshStandardMaterial({color:0x727989,roughness:1,flatShading:true,side:THREE.DoubleSide});
  const snowMat=new THREE.MeshStandardMaterial({color:0xf3f0ed,roughness:.98,flatShading:true,side:THREE.DoubleSide});
  function mountainShell(snowOnly){
@@ -2287,7 +2333,8 @@ if(ACTIVE_TRACK==='cliff'&&p.cliffFalling>0){
  camera.lookAt(look);
 }else{
 let target=p.group.position.clone().addScaledVector(heading,-13).add(new THREE.Vector3(0,7,0));const cameraBlend=1-Math.exp(-dt*8);camera.position.lerp(target,cameraBlend);let look=p.group.position.clone().addScaledVector(heading,11).add(new THREE.Vector3(0,2,0));if(!cameraLookTarget)cameraLookTarget=look.clone();else cameraLookTarget.lerp(look,cameraBlend);camera.lookAt(cameraLookTarget);
-}const targetFov=67+(p.boost>0||p.reserve>0?8:0);if(Math.abs(camera.fov-targetFov)>.025){camera.fov=lerp(camera.fov,targetFov,Math.min(1,dt*3));camera.updateProjectionMatrix()}renderer.render(scene,camera);captureRealCircuitPreview()}let framePerfSamples=0,framePerfSum=0,framePerfLast=0,framePerfCooldown=0;
+}const targetFov=67+(p.boost>0||p.reserve>0?8:0);if(Math.abs(camera.fov-targetFov)>.025){camera.fov=lerp(camera.fov,targetFov,Math.min(1,dt*3));camera.updateProjectionMatrix()}if(scene.userData.animateSakuraFall)scene.userData.animateSakuraFall(performance.now()*.001);
+ renderer.render(scene,camera);captureRealCircuitPreview()}let framePerfSamples=0,framePerfSum=0,framePerfLast=0,framePerfCooldown=0;
 let raceHudVisible=false;
 // Temporary in-race FPS diagnostic. Measures actual animation frame intervals,
 // including slow-frame spikes, rather than estimating from physics speed.
