@@ -1693,34 +1693,49 @@ if(ACTIVE_TRACK==='sakura'){
  }
  // Restore the original lightweight painted Fuji backdrop while the photographic
  // cutouts are reworked. Avoid rectangular alpha/fog artifacts in live racing.
- function scenicSprite(tex,x,y,z,w,h,opacity=1){
-  const material=new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity,depthWrite:false,side:THREE.DoubleSide,fog:true,alphaTest:.025});
+ // Distant scenery: trim the PNGs to their actual nontransparent pixels.
+ // Do not use a vertical fade: it previously erased the skyline and Fuji.
+ function scenicSprite(tex,x,y,z,w,h,opacity=1,order=-2){
+  const material=new THREE.MeshBasicMaterial({
+   map:tex,transparent:true,opacity,depthWrite:false,depthTest:true,
+   side:THREE.DoubleSide,fog:false,alphaTest:.12
+  });
   const plane=new THREE.Mesh(new THREE.PlaneGeometry(w,h),material);
-  plane.position.set(x,y,z);plane.renderOrder=-2;plane.frustumCulled=true;
+  plane.position.set(x,y,z);plane.renderOrder=order;plane.frustumCulled=true;
   scene.add(plane);return plane;
  }
- const fujiTexture=scenicTexture(1024,640,(c,w,h)=>{
-  const profile=[[.04,.94],[.13,.85],[.23,.76],[.32,.66],[.40,.51],[.47,.31],[.51,.17],[.54,.13],[.58,.20],[.65,.42],[.73,.59],[.83,.73],[.96,.90]];
-  const grad=c.createLinearGradient(0,95,0,h);grad.addColorStop(0,'#a0a2b8');grad.addColorStop(.65,'#767f96');grad.addColorStop(1,'#a69eac');
-  c.fillStyle=grad;c.beginPath();c.moveTo(0,h);
-  for(const [x,y] of profile)c.lineTo(x*w,y*h);
-  c.lineTo(w,h);c.closePath();c.fill();
-  c.fillStyle='#f5edf2';c.beginPath();c.moveTo(.54*w,.13*h);
-  for(const [x,y] of [[.58,.20],[.61,.29],[.65,.39],[.61,.34],[.58,.39],[.56,.31],[.53,.42],[.51,.32],[.47,.40],[.49,.29],[.45,.34],[.47,.25]])c.lineTo(x*w,y*h);
-  c.closePath();c.fill();
-  for(let i=0;i<55;i++){
-   const k=i/55,dx=(k-.5)*280,top=125+Math.abs(dx)*1.05;
-   c.strokeStyle=i%3===0?'rgba(255,250,250,.5)':'rgba(53,64,91,.25)';
-   c.lineWidth=1+i%4;c.beginPath();c.moveTo(550+dx*.22,top);
-   c.lineTo(550+dx,top+30+Math.abs(dx)*.45);c.stroke();
-  }
-  c.globalCompositeOperation='destination-out';
-  const haze=c.createLinearGradient(0,h*.68,0,h);
-  haze.addColorStop(0,'rgba(0,0,0,0)');haze.addColorStop(1,'rgba(0,0,0,.85)');
-  c.fillStyle=haze;c.fillRect(0,h*.68,w,h*.32);
-  c.globalCompositeOperation='source-over';
- });
- scenicSprite(fujiTexture,-55,91,495,330,204,.86);
+ const sakuraBackdropLoader=new THREE.TextureLoader();
+ function sakuraPhoto(url,x,y,z,w,h,order){
+  sakuraBackdropLoader.load(url,tex=>{
+   const img=tex.image,iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
+   const source=document.createElement('canvas');source.width=iw;source.height=ih;
+   const c=source.getContext('2d',{willReadFrequently:true});c.drawImage(img,0,0);
+   const pixels=c.getImageData(0,0,iw,ih).data;
+   let left=iw,right=-1,top=ih,bottom=-1;
+   for(let yy=0;yy<ih;yy+=2)for(let xx=0;xx<iw;xx+=2){
+    const i=(yy*iw+xx)*4;
+    if(pixels[i+3]>40){
+     if(xx<left)left=xx;if(xx>right)right=xx;
+     if(yy<top)top=yy;if(yy>bottom)bottom=yy;
+    }
+   }
+   if(right<left||bottom<top){console.warn('Empty Sakura photo:',url);tex.dispose();return;}
+   left=Math.max(0,left-2);top=Math.max(0,top-2);
+   right=Math.min(iw-1,right+3);bottom=Math.min(ih-1,bottom+3);
+   const crop=document.createElement('canvas');crop.width=right-left+1;crop.height=bottom-top+1;
+   crop.getContext('2d').drawImage(source,left,top,crop.width,crop.height,0,0,crop.width,crop.height);
+   const cutout=new THREE.CanvasTexture(crop);cutout.colorSpace=THREE.SRGBColorSpace;
+   cutout.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+   // Fit the original photograph aspect ratio, rather than stretching it.
+   const finalHeight=w*crop.height/crop.width;
+   scenicSprite(cutout,x,y,z,w,finalHeight,1,order);
+   tex.dispose();
+  },undefined,err=>console.warn('Sakura photo failed:',url,err));
+ }
+ // Fuji's centre sits behind the city; the mountain is fully visible above it.
+ sakuraPhoto('Assets/file_0000000052888246b6b0d729ad050d7a.png',-55,88,495,275,180,-4);
+ // Tokyo skyline appears in front of Fuji and behind the treeline.
+ sakuraPhoto('Assets/a_wide_panoramic_city_skyline_cutout_on_transparen.png',-55,33,372,205,65,-3);
  // Forest ridges hide the bare grass horizon, with alpha-cutout foliage silhouettes.
  function forestTexture(seed){
   return scenicTexture(1024,256,(c,w,h)=>{
