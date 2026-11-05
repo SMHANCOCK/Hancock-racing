@@ -1723,26 +1723,14 @@ if(ACTIVE_TRACK==='sakura'){
   c.globalCompositeOperation='source-over';
  });
  scenicSprite(fujiTexture,-55,91,495,330,204,.86);
- // Two skyline layers, with warm lit windows; small compared with the mountain.
- function cityTexture(seed){
-  return scenicTexture(1024,256,(c,w,h)=>{
-   for(let i=0;i<74;i++){
-    const x=i*14-4,bh=28+rand(i*9+seed)*115,bw=9+rand(i*3+seed)*8;
-    c.fillStyle=['#596476','#677182','#778192','#4b5d70'][i%4];c.fillRect(x,h-bh,bw,bh);
-    c.fillStyle='rgba(255,212,152,.65)';
-    for(let yy=h-bh+6;yy<h-3;yy+=9)for(let xx=x+3;xx<x+bw-2;xx+=5)
-     if(rand(xx*5+yy*3+seed)>.64)c.fillRect(xx,yy,1.6,2.4);
-   }
-   // Preserve true transparent sky between buildings.
-   c.globalCompositeOperation='destination-out';
-   const fade=c.createLinearGradient(0,h*.7,0,h);
-   fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(1,'rgba(0,0,0,.55)');
-   c.fillStyle=fade;c.fillRect(0,h*.7,w,h*.3);
-   c.globalCompositeOperation='source-over';
-  });
- }
- scenicSprite(cityTexture(91),-68,28,372,215,53,.88);
- scenicSprite(cityTexture(37),-65,19,349,182,36,.72);
+ // Photo-real skyline asset: fixed in world space, never camera-facing.
+ // The transparent PNG lives at assets/sakura-city-skyline.png.
+ const skylineLoader=new THREE.TextureLoader();
+ skylineLoader.load('assets/sakura-city-skyline.png',tex=>{
+  tex.colorSpace=THREE.SRGBColorSpace;
+  tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+  scenicSprite(tex,-68,31,372,215,72,1);
+ },undefined,err=>console.warn('Sakura skyline PNG not yet uploaded:',err));
  // Forest ridges hide the bare grass horizon, with alpha-cutout foliage silhouettes.
  function forestTexture(seed){
   return scenicTexture(1024,256,(c,w,h)=>{
@@ -1761,15 +1749,6 @@ if(ACTIVE_TRACK==='sakura'){
  }
  scenicSprite(forestTexture(11),120,23,255,270,68,.98);
  scenicSprite(forestTexture(72),-180,20,225,235,58,.95);
- // Flat, translucent shoreline fog bands. No volumetric rendering.
- const fogTex=scenicTexture(512,128,(c,w,h)=>{
-  const g=c.createRadialGradient(w/2,h/2,5,w/2,h/2,w/2);
-  g.addColorStop(0,'rgba(247,231,236,.55)');
-  g.addColorStop(.65,'rgba(239,220,229,.28)');
-  g.addColorStop(1,'rgba(239,220,229,0)');
-  c.fillStyle=g;c.fillRect(0,0,w,h);
- });
- for(let i=0;i<5;i++)scenicSprite(fogTex,-45+i*16,5+i*2,275+i*19,155+i*19,18+i*4,.53);
  // Cheap water highlight bands instead of render-to-texture reflections.
  const glintMat=new THREE.MeshBasicMaterial({color:0xffd7c8,transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide});
  for(let i=0;i<18;i++){
