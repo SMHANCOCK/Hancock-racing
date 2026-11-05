@@ -1781,6 +1781,42 @@ if(ACTIVE_TRACK==='sakura'){
  }
  scenicSprite(forestTexture(11),120,23,255,270,68,.98);
  scenicSprite(forestTexture(72),-180,20,225,235,58,.95);
+ // Phase 2: transparent illustrated sakura woodland, layered in world space.
+ // These are static textured planes (not camera-facing sprites): no per-frame work.
+ function blossomWoodland(seed){
+  const cv=document.createElement('canvas');cv.width=1536;cv.height=320;
+  const c=cv.getContext('2d'),r=n=>rand(n*3.71+seed*17.23);
+  for(let i=0;i<75;i++){
+   const x=(i+.35)*1536/75+(r(i+41)-.5)*19;
+   const scale=.62+r(i+70)*.75,base=310-r(i+81)*20;
+   const crownY=base-(65+r(i+55)*50)*scale;
+   c.strokeStyle='#574d4d';c.lineWidth=3.5*scale;c.lineCap='round';
+   c.beginPath();c.moveTo(x,base);c.lineTo(x,crownY+22*scale);
+   for(let j=0;j<4;j++){
+    const side=j%2?-1:1;
+    c.moveTo(x,crownY+35*scale+j*7*scale);
+    c.lineTo(x+side*(19+j*4)*scale,crownY+(j*5-6)*scale);
+   }c.stroke();
+   for(let j=0;j<11;j++){
+    const theta=j*2.399+r(i*19+j)*.5;
+    const spread=(12+r(i*29+j)*23)*scale;
+    const cx=x+Math.cos(theta)*spread,cy=crownY+Math.sin(theta)*spread*.62;
+    const rad=(12+r(i*31+j)*10)*scale;
+    c.fillStyle=['#f4a6ca','#f8c4d8','#e88cb8','#d975a9','#f2b4d1'][Math.floor(r(i*47+j)*5)];
+    c.beginPath();c.ellipse(cx,cy,rad*1.2,rad*.85,theta*.12,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(255,229,239,.46)';
+    c.beginPath();c.arc(cx-rad*.2,cy-rad*.23,rad*.28,0,Math.PI*2);c.fill();
+   }
+  }
+  const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;
+  t.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());return t;
+ }
+ // Hide the empty gap beneath the city with blossom treetops while keeping
+ // the mountain and city photographs unchanged.
+ scenicSprite(blossomWoodland(14),-55,13,347,210,45,1,-2);
+ // Two staggered forest banks create parallax around the elevated bridge.
+ scenicSprite(blossomWoodland(23),-174,12,205,145,36,.98,-1);
+ scenicSprite(blossomWoodland(38),105,12,215,145,36,.98,-1);
  // Cheap water highlight bands instead of render-to-texture reflections.
  const glintMat=new THREE.MeshBasicMaterial({color:0xffd7c8,transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide});
  for(let i=0;i<18;i++){
