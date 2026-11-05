@@ -1699,38 +1699,29 @@ if(ACTIVE_TRACK==='sakura'){
   plane.position.set(x,y,z);plane.renderOrder=-2;plane.frustumCulled=true;
   scene.add(plane);return plane;
  }
- // Mountain is a detailed painted silhouette with snow streaks and distant haze.
- const fujiTexture=scenicTexture(1024,640,(c,w,h)=>{
-  const profile=[[.04,.94],[.13,.85],[.23,.76],[.32,.66],[.40,.51],[.47,.31],[.51,.17],[.54,.13],[.58,.20],[.65,.42],[.73,.59],[.83,.73],[.96,.90]];
-  const grad=c.createLinearGradient(0,95,0,h);grad.addColorStop(0,'#a0a2b8');grad.addColorStop(.65,'#767f96');grad.addColorStop(1,'#a69eac');
-  c.fillStyle=grad;c.beginPath();c.moveTo(0,h);
-  for(const [x,y] of profile)c.lineTo(x*w,y*h);
-  c.lineTo(w,h);c.closePath();c.fill();
-  c.fillStyle='#f5edf2';c.beginPath();c.moveTo(.54*w,.13*h);
-  for(const [x,y] of [[.58,.20],[.61,.29],[.65,.39],[.61,.34],[.58,.39],[.56,.31],[.53,.42],[.51,.32],[.47,.40],[.49,.29],[.45,.34],[.47,.25]])c.lineTo(x*w,y*h);
-  c.closePath();c.fill();
-  for(let i=0;i<55;i++){
-   const k=i/55,dx=(k-.5)*280,top=125+Math.abs(dx)*1.05;
-   c.strokeStyle=i%3===0?'rgba(255,250,250,.5)':'rgba(53,64,91,.25)';
-   c.lineWidth=1+i%4;c.beginPath();c.moveTo(550+dx*.22,top);
-   c.lineTo(550+dx,top+30+Math.abs(dx)*.45);c.stroke();
-  }
-  // Fade only EXISTING mountain pixels; do not paint a rectangular haze card.
-  c.globalCompositeOperation='destination-out';
-  const haze=c.createLinearGradient(0,h*.68,0,h);
-  haze.addColorStop(0,'rgba(0,0,0,0)');haze.addColorStop(1,'rgba(0,0,0,.85)');
-  c.fillStyle=haze;c.fillRect(0,h*.68,w,h*.32);
-  c.globalCompositeOperation='source-over';
- });
- scenicSprite(fujiTexture,-55,91,495,330,204,.86);
- // Photo-real skyline asset: fixed in world space, never camera-facing.
- // The transparent PNG lives at assets/sakura-city-skyline.png.
- const skylineLoader=new THREE.TextureLoader();
- skylineLoader.load('assets/sakura-city-skyline.png',tex=>{
-  tex.colorSpace=THREE.SRGBColorSpace;
-  tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
-  scenicSprite(tex,-68,31,372,215,72,1);
- },undefined,err=>console.warn('Sakura skyline PNG not yet uploaded:',err));
+ // Sakura panorama: uploaded transparent PNGs, fixed in world coordinates.
+ // The city is in front of Mount Fuji, both behind the actual track scenery.
+ const scenicLoader=new THREE.TextureLoader();
+ function loadSakuraBackdrop(url,x,y,z,w,h,opacity=1){
+  scenicLoader.load(url,tex=>{
+   tex.colorSpace=THREE.SRGBColorSpace;
+   tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+   scenicSprite(tex,x,y,z,w,h,opacity);
+  },undefined,err=>console.warn('Sakura backdrop failed to load:',url,err));
+ }
+ // Asset filenames are discovered from the existing GitHub Assets directory.
+ // This avoids renaming the uploaded PNGs or relying on guessed filenames.
+ fetch('https://api.github.com/repos/SMHANCOCK/Hancock-racing/contents/Assets?ref=main')
+  .then(r=>{if(!r.ok)throw Error('GitHub Assets '+r.status);return r.json()})
+  .then(files=>{
+   const pngs=files.filter(f=>/\\.png$/i.test(f.name));
+   const mountain=pngs.find(f=>/^file_0000000052888246b6b0d729ad050d7a\\.png$/i.test(f.name)) || pngs.find(f=>/fuji|mountain/i.test(f.name));
+   const city=pngs.find(f=>/a_wide_panoramic_city_skyline_cutout/i.test(f.name)) || pngs.find(f=>/skyline|cityscape/i.test(f.name));
+   if(mountain)loadSakuraBackdrop(mountain.download_url,-55,91,495,330,204,1);
+   else console.warn('Sakura Mount Fuji PNG missing from Assets');
+   if(city)loadSakuraBackdrop(city.download_url,-68,31,372,215,72,1);
+   else console.warn('Sakura city skyline PNG missing from Assets');
+  }).catch(err=>console.warn('Unable to discover Sakura image assets:',err));
  // Forest ridges hide the bare grass horizon, with alpha-cutout foliage silhouettes.
  function forestTexture(seed){
   return scenicTexture(1024,256,(c,w,h)=>{
