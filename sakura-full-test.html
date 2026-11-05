@@ -1683,24 +1683,90 @@ if(ACTIVE_TRACK==='sakura'){
    tile.rotation.y=Math.atan2(f.tan.x,f.tan.z);
   }
  }
- // Mount Fuji: wide, faceted sloping foothills and uneven snow line instead of a cone.
- const mountX=-55,mountZ=495;
- const mountainStone=new THREE.MeshStandardMaterial({color:0x727989,roughness:1,flatShading:true,side:THREE.DoubleSide});
- const snowMat=new THREE.MeshStandardMaterial({color:0xf3f0ed,roughness:.98,flatShading:true,side:THREE.DoubleSide});
- function mountainShell(snowOnly){
-  const sides=48,levels=snowOnly?[{y:81,r:45},{y:99,r:34},{y:117,r:19},{y:131,r:0}]:[{y:-10,r:155},{y:12,r:140},{y:36,r:113},{y:64,r:75},{y:87,r:44},{y:112,r:23},{y:131,r:0}];
-  const v=[],ind=[];
-  for(let j=0;j<levels.length;j++)for(let i=0;i<sides;i++){
-   const a=i*2*Math.PI/sides,irregular=1+.055*Math.sin(i*2.7)+.04*Math.cos(i*4.1+j*.4);
-   const snowEdge=snowOnly&&j===0?(Math.sin(i*.9)*8+Math.sin(i*2.8)*4):0;
-   v.push(mountX+Math.cos(a)*levels[j].r*irregular,levels[j].y+snowEdge,mountZ+Math.sin(a)*levels[j].r*irregular);
-  }
-  for(let j=0;j<levels.length-1;j++)for(let i=0;i<sides;i++){const a=j*sides+i,b=j*sides+(i+1)%sides,c=(j+1)*sides+i,d=(j+1)*sides+(i+1)%sides;ind.push(a,b,c,b,d,c)}
-  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));geo.setIndex(ind);geo.computeVertexNormals();scene.add(new THREE.Mesh(geo,snowOnly?snowMat:mountainStone));
+ // Stage 1: lightweight 2.5D scenic layers. Canvas textures are generated once.
+ // Sprites always face the camera, avoiding the flat-card edge-on effect on bends.
+ function scenicTexture(w,h,draw){
+  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d');draw(ctx,w,h);
+  const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
+  tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());return tex;
  }
- mountainShell(false);mountainShell(true);
- // Distant Japanese city skyline, kept behind the circuit.
- for(let i=0;i<42;i++){const h=8+rand(i+80)*29;mesh(new THREE.BoxGeometry(4+rand(i)*5,h,7),mat(i%3?0x778697:0x99a5af),-145+i*5.2,h/2,354+(i%4)*8)}
+ function scenicSprite(tex,x,y,z,w,h,opacity=1){
+  const material=new THREE.SpriteMaterial({map:tex,transparent:true,opacity,depthWrite:false,fog:true});
+  const sprite=new THREE.Sprite(material);sprite.position.set(x,y,z);sprite.scale.set(w,h,1);
+  sprite.renderOrder=-2;scene.add(sprite);return sprite;
+ }
+ // Mountain is a detailed painted silhouette with snow streaks and distant haze.
+ const fujiTexture=scenicTexture(1024,640,(c,w,h)=>{
+  const profile=[[.04,.94],[.13,.85],[.23,.76],[.32,.66],[.40,.51],[.47,.31],[.51,.17],[.54,.13],[.58,.20],[.65,.42],[.73,.59],[.83,.73],[.96,.90]];
+  const grad=c.createLinearGradient(0,95,0,h);grad.addColorStop(0,'#a0a2b8');grad.addColorStop(.65,'#767f96');grad.addColorStop(1,'#a69eac');
+  c.fillStyle=grad;c.beginPath();c.moveTo(0,h);
+  for(const [x,y] of profile)c.lineTo(x*w,y*h);
+  c.lineTo(w,h);c.closePath();c.fill();
+  c.fillStyle='#f5edf2';c.beginPath();c.moveTo(.54*w,.13*h);
+  for(const [x,y] of [[.58,.20],[.61,.29],[.65,.39],[.61,.34],[.58,.39],[.56,.31],[.53,.42],[.51,.32],[.47,.40],[.49,.29],[.45,.34],[.47,.25]])c.lineTo(x*w,y*h);
+  c.closePath();c.fill();
+  for(let i=0;i<55;i++){
+   const k=i/55,dx=(k-.5)*280,top=125+Math.abs(dx)*1.05;
+   c.strokeStyle=i%3===0?'rgba(255,250,250,.5)':'rgba(53,64,91,.25)';
+   c.lineWidth=1+i%4;c.beginPath();c.moveTo(550+dx*.22,top);
+   c.lineTo(550+dx,top+30+Math.abs(dx)*.45);c.stroke();
+  }
+  const haze=c.createLinearGradient(0,h*.65,0,h);haze.addColorStop(0,'rgba(241,187,192,0)');haze.addColorStop(1,'rgba(241,187,192,.72)');
+  c.fillStyle=haze;c.fillRect(0,h*.65,w,h*.35);
+ });
+ scenicSprite(fujiTexture,-55,91,495,330,204,.95);
+ // Two skyline layers, with warm lit windows; small compared with the mountain.
+ function cityTexture(seed){
+  return scenicTexture(1024,256,(c,w,h)=>{
+   for(let i=0;i<74;i++){
+    const x=i*14-4,bh=28+rand(i*9+seed)*115,bw=9+rand(i*3+seed)*8;
+    c.fillStyle=['#596476','#677182','#778192','#4b5d70'][i%4];c.fillRect(x,h-bh,bw,bh);
+    c.fillStyle='rgba(255,212,152,.65)';
+    for(let yy=h-bh+6;yy<h-3;yy+=9)for(let xx=x+3;xx<x+bw-2;xx+=5)
+     if(rand(xx*5+yy*3+seed)>.64)c.fillRect(xx,yy,1.6,2.4);
+   }
+   const fade=c.createLinearGradient(0,h*.45,0,h);
+   fade.addColorStop(0,'rgba(242,174,176,0)');fade.addColorStop(1,'rgba(242,174,176,.52)');
+   c.fillStyle=fade;c.fillRect(0,h*.45,w,h*.55);
+  });
+ }
+ scenicSprite(cityTexture(91),-68,28,372,215,53,.88);
+ scenicSprite(cityTexture(37),-65,19,349,182,36,.72);
+ // Forest ridges hide the bare grass horizon, with alpha-cutout foliage silhouettes.
+ function forestTexture(seed){
+  return scenicTexture(1024,256,(c,w,h)=>{
+   c.fillStyle='#334c3f';c.beginPath();c.moveTo(0,h);
+   for(let x=0;x<=w;x+=8){
+    const ht=54+rand(x*2+seed)*46+Math.sin(x*.017+seed)*19;
+    c.lineTo(x,h-ht);
+   }
+   c.lineTo(w,h);c.closePath();c.fill();
+   for(let i=0;i<260;i++){
+    const x=rand(i*7+seed)*w,yy=h-35-rand(i*13+seed)*48,r=8+rand(i*11+seed)*18;
+    c.fillStyle=['#365944','#426e4e','#274b3b','#527357'][i%4];
+    c.beginPath();c.arc(x,yy,r,0,Math.PI*2);c.fill();
+   }
+  });
+ }
+ scenicSprite(forestTexture(11),120,23,255,270,68,.98);
+ scenicSprite(forestTexture(72),-180,20,225,235,58,.95);
+ // Flat, translucent shoreline fog bands. No volumetric rendering.
+ const fogTex=scenicTexture(512,128,(c,w,h)=>{
+  const g=c.createRadialGradient(w/2,h/2,5,w/2,h/2,w/2);
+  g.addColorStop(0,'rgba(247,231,236,.55)');
+  g.addColorStop(.65,'rgba(239,220,229,.28)');
+  g.addColorStop(1,'rgba(239,220,229,0)');
+  c.fillStyle=g;c.fillRect(0,0,w,h);
+ });
+ for(let i=0;i<5;i++)scenicSprite(fogTex,-45+i*16,5+i*2,275+i*19,155+i*19,18+i*4,.53);
+ // Cheap water highlight bands instead of render-to-texture reflections.
+ const glintMat=new THREE.MeshBasicMaterial({color:0xffd7c8,transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide});
+ for(let i=0;i<18;i++){
+  const x=-40+(rand(i*3+71)-.5)*145,z=245+(rand(i*7+91)-.5)*130;
+  const streak=new THREE.Mesh(new THREE.PlaneGeometry(4+rand(i+17)*23,.3+rand(i+2)*.8),glintMat);
+  streak.rotation.x=-Math.PI/2;streak.position.set(x,-.275,z);scene.add(streak);
+ }
  // Red lakeside guardrail follows the left edge of the high sweeping bend.
  const railMat=new THREE.MeshStandardMaterial({color:0xb92e3d,roughness:.7});
  for(let i=0;i<145;i++){
