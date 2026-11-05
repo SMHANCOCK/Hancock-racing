@@ -1692,9 +1692,12 @@ if(ACTIVE_TRACK==='sakura'){
   tex.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());return tex;
  }
  function scenicSprite(tex,x,y,z,w,h,opacity=1){
-  const material=new THREE.SpriteMaterial({map:tex,transparent:true,opacity,depthWrite:false,fog:true});
-  const sprite=new THREE.Sprite(material);sprite.position.set(x,y,z);sprite.scale.set(w,h,1);
-  sprite.renderOrder=-2;scene.add(sprite);return sprite;
+  // Fixed world-space impostor: NEVER billboard toward the steering camera.
+  // Double-sided so the silhouette remains visible from either direction.
+  const material=new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity,depthWrite:false,side:THREE.DoubleSide,fog:true,alphaTest:.025});
+  const plane=new THREE.Mesh(new THREE.PlaneGeometry(w,h),material);
+  plane.position.set(x,y,z);plane.renderOrder=-2;plane.frustumCulled=true;
+  scene.add(plane);return plane;
  }
  // Mountain is a detailed painted silhouette with snow streaks and distant haze.
  const fujiTexture=scenicTexture(1024,640,(c,w,h)=>{
@@ -1712,10 +1715,14 @@ if(ACTIVE_TRACK==='sakura'){
    c.lineWidth=1+i%4;c.beginPath();c.moveTo(550+dx*.22,top);
    c.lineTo(550+dx,top+30+Math.abs(dx)*.45);c.stroke();
   }
-  const haze=c.createLinearGradient(0,h*.65,0,h);haze.addColorStop(0,'rgba(241,187,192,0)');haze.addColorStop(1,'rgba(241,187,192,.72)');
-  c.fillStyle=haze;c.fillRect(0,h*.65,w,h*.35);
+  // Fade only EXISTING mountain pixels; do not paint a rectangular haze card.
+  c.globalCompositeOperation='destination-out';
+  const haze=c.createLinearGradient(0,h*.68,0,h);
+  haze.addColorStop(0,'rgba(0,0,0,0)');haze.addColorStop(1,'rgba(0,0,0,.85)');
+  c.fillStyle=haze;c.fillRect(0,h*.68,w,h*.32);
+  c.globalCompositeOperation='source-over';
  });
- scenicSprite(fujiTexture,-55,91,495,330,204,.95);
+ scenicSprite(fujiTexture,-55,91,495,330,204,.86);
  // Two skyline layers, with warm lit windows; small compared with the mountain.
  function cityTexture(seed){
   return scenicTexture(1024,256,(c,w,h)=>{
@@ -1726,9 +1733,12 @@ if(ACTIVE_TRACK==='sakura'){
     for(let yy=h-bh+6;yy<h-3;yy+=9)for(let xx=x+3;xx<x+bw-2;xx+=5)
      if(rand(xx*5+yy*3+seed)>.64)c.fillRect(xx,yy,1.6,2.4);
    }
-   const fade=c.createLinearGradient(0,h*.45,0,h);
-   fade.addColorStop(0,'rgba(242,174,176,0)');fade.addColorStop(1,'rgba(242,174,176,.52)');
-   c.fillStyle=fade;c.fillRect(0,h*.45,w,h*.55);
+   // Preserve true transparent sky between buildings.
+   c.globalCompositeOperation='destination-out';
+   const fade=c.createLinearGradient(0,h*.7,0,h);
+   fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(1,'rgba(0,0,0,.55)');
+   c.fillStyle=fade;c.fillRect(0,h*.7,w,h*.3);
+   c.globalCompositeOperation='source-over';
   });
  }
  scenicSprite(cityTexture(91),-68,28,372,215,53,.88);
