@@ -45,8 +45,8 @@ cvs.addEventListener('pointermove',e=>{if(!MAP.drag)return;MAP.yaw-=(e.clientX-p
 cvs.addEventListener('pointerup',()=>MAP.drag=false);
 let touchLast=null,touchDistance=0;
 cvs.style.touchAction='none';
-cvs.addEventListener('touchstart',e=>{if(MAP.edit!=='none')return;if(e.touches.length===1){touchLast=[e.touches[0].clientX,e.touches[0].clientY]}if(e.touches.length===2){touchDistance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);touchLast=null}},{passive:true});
-cvs.addEventListener('touchmove',e=>{if(MAP.edit!=='none')return;if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(touchDistance)mapZoom((d-touchDistance)*.35);touchDistance=d;return}if(e.touches.length===1&&touchLast){const x=e.touches[0].clientX,y=e.touches[0].clientY;MAP.yaw-=(x-touchLast[0])*.005;MAP.pitch=Math.max(-1.5,Math.min(1.5,MAP.pitch-(y-touchLast[1])*.005));touchLast=[x,y]}},{passive:true});
+cvs.addEventListener('touchstart',e=>{if(MAP.edit==='road'||mapDrag)return;if(e.touches.length===1){touchLast=[e.touches[0].clientX,e.touches[0].clientY]}if(e.touches.length===2){touchDistance=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);touchLast=null}},{passive:true});
+cvs.addEventListener('touchmove',e=>{if(MAP.edit==='road'||mapDrag)return;if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(touchDistance)mapZoom((d-touchDistance)*.35);touchDistance=d;return}if(e.touches.length===1&&touchLast){const x=e.touches[0].clientX,y=e.touches[0].clientY;MAP.yaw-=(x-touchLast[0])*.005;MAP.pitch=Math.max(-1.5,Math.min(1.5,MAP.pitch-(y-touchLast[1])*.005));touchLast=[x,y]}},{passive:true});
 cvs.addEventListener('touchend',()=>{touchLast=null;touchDistance=0});
 function mapZoom(distance){if(MAP.mode==='top'){camera.position.y=Math.max(18,Math.min(800,camera.position.y-distance));return}if(MAP.mode==='road'){MAP.t=(MAP.t+distance*.0001+1)%1;return}const direction=new THREE.Vector3();camera.getWorldDirection(direction);camera.position.addScaledVector(direction,distance)}
 
@@ -57,9 +57,21 @@ MAP.assets=[];MAP.assetCounter=0;MAP.assetLoader=null;
 function mapRegisterAsset(group,kind,name,data){
  group.userData.editorWholeObject=true;group.userData.editorKind='imported';group.userData.assetId=++MAP.assetCounter;
  group.userData.assetType=kind;group.userData.assetName=name;group.userData.assetData=data;
- scene.add(group);MAP.assets.push(group);MAP.selected=group;MAP.edit='select';
- const f=frame(.02);group.position.set(f.p.x+f.normal.x*(WIDTH/2+18),0,f.p.z+f.normal.z*(WIDTH/2+18));
- mapSay(name+' imported and selected. Drag the image or use movement/size buttons.');
+ scene.add(group);MAP.assets.push(group);MAP.selected=group;
+// Importing an object must never switch off the touch-look camera.
+camera.updateMatrixWorld(true);
+const facing=new THREE.Vector3();camera.getWorldDirection(facing);
+const horizontal=facing.clone().setY(0);
+if(horizontal.lengthSq()<.01)horizontal.set(0,0,-1);
+horizontal.normalize();
+const distance=25;
+const placement=camera.position.clone().addScaledVector(horizontal,distance);
+group.position.set(placement.x,0,placement.z);
+if(kind==='image'){
+ group.rotation.y=Math.atan2(camera.position.x-placement.x,camera.position.z-placement.z);
+}
+// Retain the user's current edit mode and camera controls.
+mapSay(name+' placed in front of camera. Tap image to select; drag empty space to look around.');
 }
 async function mapImportAsset(asset){
  try{
