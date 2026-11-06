@@ -48,6 +48,36 @@ function mapSmooth(focus=null){
  points[i][0]=p[0]+dx*factor;points[i][1]=p[1]+dz*factor;
  }
 }
+
+// Road edge geometry uses a filtered centreline tangent rather than the
+// raw Catmull-Rom derivative, preventing abrupt normal flips at tight bends.
+function editorRibbon(offsetA,offsetB,y,material){
+ const count=Math.max(900,SEG*2),vertices=[],indices=[];
+ const samples=[];
+ for(let i=0;i<count;i++){
+  const t=i/count,p=spline(t);
+  const span=1/count*3;
+  const tangent=spline(t+span).sub(spline(t-span));
+  tangent.y=0;tangent.normalize();
+  samples.push({p,n:new THREE.Vector3(-tangent.z,0,tangent.x)});
+ }
+ // Circular smoothing of the edge directions; keeps closed-loop continuity.
+ const normals=samples.map((sample,i)=>{
+  const n=new THREE.Vector3();
+  for(let k=-3;k<=3;k++)n.addScaledVector(samples[(i+k+count)%count].n,4-Math.abs(k));
+  return n.lengthSq()>1e-8?n.normalize():sample.n;
+ });
+ for(let i=0;i<=count;i++){
+  const j=i%count,p=samples[j].p,n=normals[j];
+  for(const off of [offsetA,offsetB])vertices.push(p.x+n.x*off,y,p.z+n.z*off);
+ }
+ for(let i=0;i<count;i++){const j=i*2;indices.push(j,j+1,j+2,j+1,j+3,j+2)}
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+ geometry.setIndex(indices);geometry.computeVertexNormals();
+ const result=mesh(geometry,material);
+ return result;
+}
 function mapRebuild(){
  if(!MAP.initialRoadCleared){
   const original=scene.children.filter(o=>o.userData?.editorOriginalRoad || (o.isMesh && o.geometry?.attributes?.position?.count===(SEG+1)*2 && [road,shoulder,red].includes(o.material)));
@@ -56,7 +86,7 @@ function mapRebuild(){
  }
  for(const o of MAP.roadMeshes){scene.remove(o);o.geometry.dispose()}MAP.roadMeshes=[];
  const before=new Set(scene.children);
- ribbon(-WIDTH/2-2,WIDTH/2+2,-.18,shoulder);ribbon(-WIDTH/2,WIDTH/2,-.11,road);ribbon(-WIDTH/2,-WIDTH/2+.6,-.07,red);ribbon(WIDTH/2-.6,WIDTH/2,-.07,red);
+ editorRibbon(-WIDTH/2-2,WIDTH/2+2,-.18,shoulder);editorRibbon(-WIDTH/2,WIDTH/2,-.11,road);editorRibbon(-WIDTH/2,-WIDTH/2+.6,-.07,red);editorRibbon(WIDTH/2-.6,WIDTH/2,-.07,red);
  MAP.roadMeshes=scene.children.filter(o=>!before.has(o));
  for(let i=0;i<MAP.handles.length;i++)MAP.handles[i].position.set(points[i][0],1,points[i][1]);
 }
