@@ -1,0 +1,36 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hancock Racing — Map Explorer</title><style>*{box-sizing:border-box}body{margin:0;background:#0b1624;color:#e7f0fa;font:14px system-ui}header{height:55px;display:flex;align-items:center;gap:12px;padding:8px 14px;background:#142438}strong{color:#ffd657}select,button{background:#2b425e;color:white;border:1px solid #59708a;border-radius:7px;padding:9px;cursor:pointer}.layout{display:grid;grid-template-columns:210px 1fr;height:calc(100dvh - 55px)}aside{padding:15px;background:#18283e;overflow:auto}aside button{display:block;width:100%;margin:8px 0;text-align:left}main{position:relative;min-width:0}iframe{width:100%;height:100%;border:0}#status{position:absolute;bottom:14px;left:14px;background:#081724e8;padding:12px;border-radius:9px;max-width:75%;pointer-events:none}p{color:#bbcee2;line-height:1.6}@media(max-width:650px){.layout{grid-template-columns:125px 1fr}aside{padding:8px}header{gap:6px;padding:5px}strong{font-size:11px}button,select{font-size:11px;padding:7px}}</style><header><strong>HANCOCK / REAL MAP</strong><select id="track"><option value="sunset">Sunset</option><option value="london">Metro</option><option value="cliff">Cliffhanger</option></select><button id="load">Load map</button><span id="state">Ready</span></header><div class="layout"><aside><b>CAMERA</b><button data-mode="free">Free fly</button><button data-mode="road">Road POV</button><button data-mode="top">Top down</button><button data-mode="reset">Reset</button><p>WASD move<br>Q / E altitude<br>Right drag look<br>Shift accelerate<br>Scroll zoom</p><p>Loads the original game meshes and scenery. Read-only; live game unchanged.</p></aside><main><iframe id="scene" title="Original 3D map"></iframe><div id="status">Choose a track to load.</div></main></div><script>
+const $=id=>document.getElementById(id);let timer;
+function send(mode){$('scene').contentWindow?.postMessage({hancockMapMode:mode},location.origin)}
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>send(b.dataset.mode));
+$('load').onclick=load;$('track').onchange=load;
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data?.hancockMapReady)return;clearTimeout(timer);$('state').textContent='Map loaded';$('status').textContent='Real scene loaded. WASD fly • Q/E altitude • Right-drag look.'});
+const inject=`
+const MAP={mode:'free',keys:{},yaw:0,pitch:-.25,speed:40,drag:false,last:performance.now(),t:0};
+const first=frame(.012);camera.position.set(first.p.x-35,30,first.p.z-35);MAP.yaw=Math.atan2(first.p.x-camera.position.x,first.p.z-camera.position.z);
+player.group.visible=false;ais.forEach(a=>a.group.visible=false);
+document.querySelectorAll('#menu,#hud,#touch,#pause,#boardOpen,#boardModal,#rotateNotice,#help,#startLights').forEach(el=>el.style.setProperty('display','none','important'));
+const cvs=renderer.domElement;cvs.style.cursor='crosshair';
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['w','a','s','d','q','e','shift'].includes(k)){MAP.keys[k]=true;e.preventDefault()}});
+window.addEventListener('keyup',e=>{delete MAP.keys[e.key.toLowerCase()]});
+cvs.addEventListener('contextmenu',e=>e.preventDefault());
+let prevX=0,prevY=0;cvs.addEventListener('pointerdown',e=>{if(e.button===2){MAP.drag=true;prevX=e.clientX;prevY=e.clientY;cvs.setPointerCapture(e.pointerId)}});
+cvs.addEventListener('pointermove',e=>{if(!MAP.drag)return;MAP.yaw-=(e.clientX-prevX)*.004;MAP.pitch=Math.max(-1.5,Math.min(1.5,MAP.pitch-(e.clientY-prevY)*.004));prevX=e.clientX;prevY=e.clientY});
+cvs.addEventListener('pointerup',()=>MAP.drag=false);
+cvs.addEventListener('wheel',e=>{e.preventDefault();let dir=new THREE.Vector3();camera.getWorldDirection(dir);camera.position.addScaledVector(dir,-Math.sign(e.deltaY)*8)},{passive:false});
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data?.hancockMapMode)return;let m=e.data.hancockMapMode;if(m==='reset'){let f=frame(.012);camera.position.set(f.p.x-35,30,f.p.z-35);MAP.mode='free';MAP.pitch=-.25;MAP.yaw=Math.atan2(f.p.x-camera.position.x,f.p.z-camera.position.z)}else{MAP.mode=m;if(m==='top')camera.position.set(0,420,0);if(m==='road')MAP.t=.01}});
+function mapRender(){const now=performance.now(),dt=Math.min(.05,(now-MAP.last)/1000);MAP.last=now;const speed=MAP.speed*dt*(MAP.keys.shift?3:1);
+if(MAP.mode==='road'){MAP.t=(MAP.t+dt*(MAP.keys.w?.065:MAP.keys.s?-.065:0)+1)%1;const f=frame(MAP.t);camera.position.copy(f.p).add(new THREE.Vector3(0,3.5,0));camera.lookAt(f.p.clone().addScaledVector(f.tan,35).add(new THREE.Vector3(0,3,0)))}
+else if(MAP.mode==='top'){camera.rotation.set(-Math.PI/2,0,0);let f=new THREE.Vector3(0,0,-1),r=new THREE.Vector3(1,0,0);if(MAP.keys.w)camera.position.addScaledVector(f,speed);if(MAP.keys.s)camera.position.addScaledVector(f,-speed);if(MAP.keys.a)camera.position.addScaledVector(r,-speed);if(MAP.keys.d)camera.position.addScaledVector(r,speed);if(MAP.keys.q)camera.position.y-=speed;if(MAP.keys.e)camera.position.y+=speed}
+else{camera.rotation.order='YXZ';camera.rotation.set(MAP.pitch,MAP.yaw,0);const f=new THREE.Vector3(Math.sin(MAP.yaw),0,Math.cos(MAP.yaw)),r=new THREE.Vector3(f.z,0,-f.x);if(MAP.keys.w)camera.position.addScaledVector(f,speed);if(MAP.keys.s)camera.position.addScaledVector(f,-speed);if(MAP.keys.a)camera.position.addScaledVector(r,-speed);if(MAP.keys.d)camera.position.addScaledVector(r,speed);if(MAP.keys.q)camera.position.y-=speed;if(MAP.keys.e)camera.position.y+=speed}
+renderer.render(scene,camera)}
+parent.postMessage({hancockMapReady:true},location.origin);
+`;
+async function load(){clearTimeout(timer);$('state').textContent='Loading…';$('status').textContent='Fetching original game source and building scene…';try{
+const r=await fetch('./index.html?mapeditor='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('Game source HTTP '+r.status);let s=await r.text();const marker='renderer.render(scene,camera);captureRealCircuitPreview()';if(!s.includes(marker))throw Error('Game renderer signature changed');
+s=s.replace(marker,'mapRender()');s=s.replace('</script></body></html>',inject+'\n</script></body></html>');s=s.replace('<head>','<head><style>#menu,#hud,#touch,#pause,#boardOpen,#boardModal,#rotateNotice,#help,#startLights{display:none!important}</style>');
+s=s.replace("const requestedTrack=launchParams.get('track')||sessionStorage.getItem('driftRushTrack');","const requestedTrack='"+$('track').value+"';");
+const doc=$('scene').contentWindow.document;doc.open();doc.write(s);doc.close();
+timer=setTimeout(()=>{$('state').textContent='Load timed out';$('status').textContent='Scene failed to initialise. Check browser console for module errors.'},18000)
+}catch(e){$('state').textContent='Error';$('status').textContent=e.message;}}
+load();
+</script></html>
