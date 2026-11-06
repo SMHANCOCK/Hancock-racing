@@ -61,7 +61,7 @@ async function mapImportAsset(asset){
   const group=new THREE.Group();
   if(asset.kind==='glb'){
    if(!MAP.assetLoader){
-    const mod=await import('https://esm.sh/three@0.160.1/examples/jsm/loaders/GLTFLoader.js?external=three');
+    const mod=await import('https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js');
     MAP.assetLoader=new mod.GLTFLoader();
    }
    const binary=atob(asset.data.split(',')[1]);const bytes=new Uint8Array(binary.length);
