@@ -728,13 +728,13 @@ if(MAP.mode==='road'||MAP.mode==='drive'){
  camera.rotateY(MAP.lookYaw);camera.rotateX(MAP.lookPitch);
  }
 else if(MAP.mode==='top'){camera.rotation.set(-Math.PI/2,0,0);let f=new THREE.Vector3(0,0,-1),r=new THREE.Vector3(1,0,0);if(MAP.keys.w)camera.position.addScaledVector(f,speed);if(MAP.keys.s)camera.position.addScaledVector(f,-speed);if(MAP.keys.a)camera.position.addScaledVector(r,-speed);if(MAP.keys.d)camera.position.addScaledVector(r,speed);if(MAP.keys.q)camera.position.y-=speed;if(MAP.keys.e)camera.position.y+=speed}
-else{camera.rotation.order='YXZ';camera.rotation.set(MAP.pitch,MAP.yaw,0);const f=new THREE.Vector3();camera.getWorldDirection(f);const r=new THREE.Vector3().crossVectors(f,new THREE.Vector3(0,1,0)).normalize();if(MAP.keys.w)camera.position.addScaledVector(f,speed);if(MAP.keys.s)camera.position.addScaledVector(f,-speed);if(MAP.keys.a)camera.position.addScaledVector(r,-speed);if(MAP.keys.d)camera.position.addScaledVector(r,speed);if(MAP.keys.q)camera.position.y-=speed;if(MAP.keys.e)camera.position.y+=speed}
+else{camera.rotation.order='YXZ';camera.rotation.set(MAP.pitch,MAP.yaw,0);camera.updateMatrixWorld(true);const f=new THREE.Vector3();camera.getWorldDirection(f);const r=new THREE.Vector3().crossVectors(f,new THREE.Vector3(0,1,0)).normalize();if(MAP.keys.w)camera.position.addScaledVector(f,speed);if(MAP.keys.s)camera.position.addScaledVector(f,-speed);if(MAP.keys.a)camera.position.addScaledVector(r,-speed);if(MAP.keys.d)camera.position.addScaledVector(r,speed);if(MAP.keys.q)camera.position.y-=speed;if(MAP.keys.e)camera.position.y+=speed}
 const turn=dt*1.25;
  if(MAP.lookKeys.left)MAP.lookYaw+=turn;
  if(MAP.lookKeys.right)MAP.lookYaw-=turn;
  if(MAP.lookKeys.up)MAP.lookPitch=Math.min(1.1,MAP.lookPitch+turn);
  if(MAP.lookKeys.down)MAP.lookPitch=Math.max(-1.1,MAP.lookPitch-turn);
- if(MAP.mode==='free'){if(MAP.lookKeys.left)MAP.yaw+=turn;if(MAP.lookKeys.right)MAP.yaw-=turn;if(MAP.lookKeys.up)MAP.pitch=Math.min(1.2,MAP.pitch+turn);if(MAP.lookKeys.down)MAP.pitch=Math.max(-1.2,MAP.pitch-turn)}
+ if(MAP.mode==='free'){if(MAP.lookKeys.left)MAP.yaw+=turn;if(MAP.lookKeys.right)MAP.yaw-=turn;if(MAP.lookKeys.up)MAP.pitch=Math.min(1.2,MAP.pitch+turn);if(MAP.lookKeys.down)MAP.pitch=Math.max(-1.2,MAP.pitch-turn);camera.rotation.set(MAP.pitch,MAP.yaw,0);camera.updateMatrixWorld(true)}
  renderer.render(scene,camera)}
 parent.postMessage({hancockMapReady:true},'*');
 `;
