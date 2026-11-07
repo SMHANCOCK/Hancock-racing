@@ -562,7 +562,7 @@ function mapHandles(){
  points.forEach((p,i)=>{const h=new THREE.Mesh(new THREE.SphereGeometry(3.5,10,8),new THREE.MeshBasicMaterial({color:0xffd44d,depthTest:false}));h.position.set(p[0],1,p[1]);h.userData.mapHandle=i;h.renderOrder=1000;scene.add(h);MAP.handles.push(h)});
 }
 const mapRay=new THREE.Raycaster(),mapMouse=new THREE.Vector2(),mapPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
-function mapPick(e){const r=cvs.getBoundingClientRect();mapMouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);mapRay.setFromCamera(mapMouse,camera);return mapRay}
+function mapPick(e){const r=cvs.getBoundingClientRect();camera.updateMatrixWorld(true);camera.updateProjectionMatrix();mapMouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);mapRay.setFromCamera(mapMouse,camera);return mapRay}
 let mapDrag=false,mapMoved=false,mapStartX=0,mapStartY=0;
 cvs.addEventListener('pointerdown',e=>{if(e.button===2||MAP.edit==='none')return;if(MAP.touchTool==='move')e.preventDefault();mapStartX=e.clientX;mapStartY=e.clientY;mapMoved=false;const ray=mapPick(e);if(MAP.edit==='road'){const hits=ray.intersectObjects(MAP.handles,false);MAP.selected=hits[0]?.object||null}else if(MAP.edit==='select'){const hits=ray.intersectObjects(scene.children,true).filter(h=>{
  const o=h.object,g=o.geometry;
@@ -573,10 +573,32 @@ cvs.addEventListener('pointerdown',e=>{if(e.button===2||MAP.edit==='none')return
  if(!g?.boundingBox)g?.computeBoundingBox();
  const height=g?.boundingBox?g.boundingBox.max.y-g.boundingBox.min.y:0;
  return height>0.35||!!o.parent?.userData?.editorWholeObject;
- });MAP.selected=hits[0]?.object||null;
+ });
+ // Use the nearest valid 3D surface under the finger; if mobile raycasting
+ // misses a thin tree, fall back to its projected screen-space bounding box.
+ let chosen=hits[0]?.object||null;
+ if(!chosen){
+  const r=cvs.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;
+  let best=Infinity;
+  for(const candidate of scene.children){
+   if(!candidate.visible||candidate===mapSelectionOutline||MAP.roadMeshes.includes(candidate)||MAP.handles.includes(candidate))continue;
+   if(!candidate.isMesh&&!candidate.userData?.editorWholeObject)continue;
+   const geo=candidate.geometry;
+   if(!candidate.userData?.editorWholeObject&&(geo?.type==='PlaneGeometry'||geo?.type==='PlaneBufferGeometry'))continue;
+   const bounds=new THREE.Box3().setFromObject(candidate);if(bounds.isEmpty())continue;
+   const size=bounds.getSize(new THREE.Vector3());
+   if(!candidate.userData?.editorWholeObject&&(size.y<1||size.x>100||size.z>100))continue;
+   const center=bounds.getCenter(new THREE.Vector3()).project(camera);
+   if(center.z< -1||center.z>1)continue;
+   const dx=(center.x+1)*r.width/2-px,dy=(1-center.y)*r.height/2-py;
+   const distance=Math.hypot(dx,dy);
+   if(distance<48&&distance<best){best=distance;chosen=candidate}
+  }
+ }
+ MAP.selected=chosen;
 if(MAP.selected){let ancestor=MAP.selected;while(ancestor.parent&&ancestor.parent!==scene){if(ancestor.userData.editorWholeObject)break;ancestor=ancestor.parent}if(ancestor.userData.editorWholeObject||ancestor.type==='Group'&&ancestor!==scene)MAP.selected=ancestor;}
 }else if(MAP.edit==='tree'){const pt=new THREE.Vector3();if(ray.ray.intersectPlane(mapPlane,pt)){mapSave();const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.5,.7,4,5),wood);trunk.position.set(pt.x,2,pt.z);scene.add(trunk);const crown=new THREE.Mesh(new THREE.ConeGeometry(3,7,6),treeGreen[0]);crown.position.set(pt.x,7,pt.z);scene.add(crown);MAP.changes.push({kind:'tree',x:pt.x,z:pt.z});mapSay('Tree placed. Export JSON to save.')}return}
-if(MAP.selected){mapLayerState();if(e.pointerType!=='touch'||MAP.touchTool==='move'||MAP.edit==='road'){mapSave();mapDrag=true;MAP.drag=false;cvs.setPointerCapture(e.pointerId)}mapSay(MAP.edit==='road'?'Dragging road control point':'Selected '+(MAP.selected.userData.assetName||'scenery')+(e.pointerType==='touch'&&MAP.touchTool==='look'?' — tap Move to reposition':' — drag to move'))}});
+if(!MAP.selected&&MAP.edit==='select'){mapSay('No object under touch — tap directly on a tree or imported image')}if(MAP.selected){mapLayerState();if(e.pointerType!=='touch'||MAP.touchTool==='move'||MAP.edit==='road'){mapSave();mapDrag=true;MAP.drag=false;cvs.setPointerCapture(e.pointerId)}mapSay(MAP.edit==='road'?'Dragging road control point':'Selected '+(MAP.selected.userData.assetName||'scenery')+(e.pointerType==='touch'&&MAP.touchTool==='look'?' — tap Move to reposition':' — drag to move'))}});
 cvs.addEventListener('pointermove',e=>{if(mapDrag&&MAP.selected){e.preventDefault();const ray=mapPick(e),pt=new THREE.Vector3();if(ray.ray.intersectPlane(mapPlane,pt)){if(MAP.edit==='road'){const i=MAP.selected.userData.mapHandle;points[i][0]=Math.round(pt.x*2)/2;points[i][1]=Math.round(pt.z*2)/2;MAP.selected.position.set(points[i][0],1,points[i][1]);mapMoved=true}else{if(MAP.selected.userData.assetType==='image'){const center=mapRailInfo().center;mapSnapRail(MAP.selected,Math.atan2(pt.x-center.x,pt.z-center.z)*180/Math.PI)}else{MAP.selected.position.x=pt.x;MAP.selected.position.z=pt.z}MAP.selected.userData.mapEdited=true;mapMoved=true}}}else if(e.buttons===1&&MAP.edit==='none'){MAP.yaw-=(e.movementX||0)*.005;MAP.pitch=Math.max(-1.5,Math.min(1.5,MAP.pitch-(e.movementY||0)*.005))}});
 cvs.addEventListener('pointerup',()=>{if(mapDrag&&mapMoved){if(MAP.edit==='road'){mapSmooth(MAP.selected.userData.mapHandle);mapRebuild();mapSay('Road rebuilt; removed '+MAP.removedOriginalRoad+' original road meshes. Roadside markings may remain.')}else{MAP.changes.push({kind:'move',uuid:MAP.selected.uuid,x:MAP.selected.position.x,y:MAP.selected.position.y,z:MAP.selected.position.z});mapSay('Object moved; export JSON to save.')}}mapDrag=false});
 window.addEventListener('message',e=>{if(e.origin!==location.origin)return;
