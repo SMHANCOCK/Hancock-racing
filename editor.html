@@ -220,6 +220,7 @@ function mapSnapRail(o,angle){
  o.position.x=info.center.x+Math.sin(rad)*radius;
  o.position.z=info.center.z+Math.cos(rad)*radius;
  o.rotation.y=rad+Math.PI;
+ if(o.userData.assetType==='image'&&layer!=='foreground')o.userData.billboard=false;
  o.userData.railAngle=a;o.userData.railRadius=radius;
  o.userData.layerDistance=radius;
  return a;
@@ -352,10 +353,18 @@ function mapLayerAction(action,id,value){
   if(o.userData.assetType==='image'){mapSnapRail(o,Math.atan2(target.x-mapRailInfo().center.x,target.z-mapRailInfo().center.z)*180/Math.PI)}
   else {o.position.x=target.x;o.position.z=target.z}
   o.userData.layerDistance=d;
-  if(o.userData.assetType==='image'&&!o.userData.billboard)o.rotation.y=Math.atan2(camera.position.x-o.position.x,camera.position.z-o.position.z);
+  if(o.userData.assetType==='image'&&!o.userData.billboard&&o.userData.assetLayer==='foreground')o.rotation.y=Math.atan2(camera.position.x-o.position.x,camera.position.z-o.position.z);
   mapSay('Moved '+o.userData.assetName+' to '+d+'m ahead');
  }
- if(action==='billboard'){o.userData.billboard=!o.userData.billboard;mapSay('Camera-facing '+(o.userData.billboard?'enabled':'disabled'))}
+ if(action==='billboard'){
+  if(o.userData.assetType==='image'&&o.userData.assetLayer!=='foreground'){
+   o.userData.billboard=false;mapSnapRail(o,o.userData.railAngle??0);
+   mapSay('Midground/background scenery stays fixed to its curved rail');
+  }else{
+   o.userData.billboard=!o.userData.billboard;
+   mapSay('Camera-facing '+(o.userData.billboard?'enabled':'disabled'));
+  }
+ }
  if(action==='focus'){
   o.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(o);
   const center=bounds.isEmpty()?o.position.clone():bounds.getCenter(new THREE.Vector3());
@@ -423,7 +432,7 @@ async function mapImportAsset(asset){
    sprite.position.y=h/2;group.add(sprite);
   }
   mapRegisterAsset(group,asset.kind,asset.name,asset.data);
-  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:45,foreground:0}[group.userData.assetLayer]??0);mapFeather(group,8)}
+  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:100,foreground:0}[group.userData.assetLayer]??0);mapFeather(group,8)}
  }catch(err){mapSay('Import failed: '+(err.message||err))}
 }
 function mapAssetAction(action,value){
@@ -560,9 +569,13 @@ if(e.data?.hancockDriveSpeed)MAP.driveSpeed=e.data.hancockDriveSpeed;
 if(e.data?.hancockLook)MAP.lookKeys[e.data.hancockLook]=e.data.down;
 if(e.data?.hancockSpeed){MAP.speed=e.data.hancockSpeed}if(e.data?.hancockZoom){const z=e.data.hancockZoom;if(z==='fit'){MAP.mode='top';camera.position.set(0,360,0)}else mapZoom((z==='in'?1:-1)*Math.max(12,MAP.speed*.45))}if(e.data?.hancockKey){MAP.keys[e.data.hancockKey]=!!e.data.down}if(e.data?.hancockEdit){MAP.edit=e.data.hancockEdit;if(MAP.edit==='road')mapHandles();MAP.handles.forEach(h=>h.visible=MAP.edit==='road');mapSay('Edit mode: '+MAP.edit)}if(e.data?.hancockSmooth){mapSave();mapSmooth();mapSmooth();mapRebuild();mapSay('Circuit smoothed; original road meshes removed: '+MAP.removedOriginalRoad)}if(e.data?.hancockUndo){const old=MAP.history.pop();if(old){points.forEach((p,i)=>{p[0]=old.points[i][0];p[1]=old.points[i][1]});MAP.changes=old.changes;mapRebuild();mapSay('Road points restored. Object undo is not yet supported.')}}if(e.data?.hancockExport){parent.postMessage({hancockExportData:{format:'hancock-editor-v1',track:ACTIVE_TRACK,points:points.map(p=>p.slice()),width:WIDTH,changes:MAP.changes,assets:MAP.assets.map(a=>({id:a.userData.assetId,kind:a.userData.assetType,name:a.userData.assetName,data:a.userData.assetData,position:a.position.toArray(),rotation:a.rotation.toArray().slice(0,3),scale:a.scale.toArray(),layer:a.userData.assetLayer||'midground',visible:a.visible,distance:a.userData.layerDistance||0,railAngle:a.userData.railAngle??null,railRadius:a.userData.railRadius??null,billboard:!!a.userData.billboard,curvature:a.userData.curvature??0})),warning:'Road edits need game integration and scenery realignment'}},'*')}});
 
-function mapRender(){const now=performance.now(),dt=Math.min(.05,(now-MAP.last)/1000);MAP.last=now;
+function mapRender(){
+ // Panoramas can be over 550 units away when viewed from the opposite side
+ // of the circuit. Extend the editor/test-drive camera's far clipping plane.
+ if(camera.far<1800){camera.far=1800;camera.updateProjectionMatrix()}
+ const now=performance.now(),dt=Math.min(.05,(now-MAP.last)/1000);MAP.last=now;
 for(const asset of MAP.assets){
- if(asset.visible&&asset.userData.billboard&&asset.userData.assetType==='image'){
+ if(asset.visible&&asset.userData.billboard&&asset.userData.assetType==='image'&&asset.userData.assetLayer==='foreground'){
   asset.rotation.y=Math.atan2(camera.position.x-asset.position.x,camera.position.z-asset.position.z);
  }
 }
