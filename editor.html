@@ -216,7 +216,14 @@ if(e.data?.hancockAsset)mapImportAsset(e.data.hancockAsset);
 if(e.data?.hancockAssetAction)mapAssetAction(e.data.hancockAssetAction,e.data.value);
 if(e.data?.hancockTestDrive){
  MAP.testDrive=true;MAP.driveReports=0;MAP.lastDriveReport=0;MAP.edit='none';MAP.keys={};MAP.testKeys={};
- player.t=.014;player.offset=-2.8;player.speed=0;player.worldPos=null;player.worldHeading=Math.atan2(frame(.014).tan.x,frame(.014).tan.z);player.finished=false;player.lap=1;player.progress=0;player.checkpoints=[false,false,false];player.prevT=.014;
+ player.t=.014;player.offset=-2.8;player.speed=0;
+ const startFrame=frame(player.t);
+ player.worldPos=startFrame.p.clone().addScaledVector(startFrame.normal,player.offset);
+ player.worldHeading=Math.atan2(startFrame.tan.x,startFrame.tan.z);
+ Object.assign(player,{finished:false,lap:1,progress:0,checkpoints:[false,false,false],prevT:.014,
+ offroadTime:0,wrongWayTime:0,skid:0,drifting:false,charge:0,chain:0,reserve:0,boost:0,
+ overheated:false,driftHold:0,spinTimer:0,gripStress:0,wasGas:false,liftWindow:0,
+ cliffFalling:0,barrierBounceTimer:0,lapStart:0});
  player.group.visible=true;ais.forEach(a=>a.group.visible=false);
  running=true;paused=false;starting=false;mode='race';raceTime=0;completedLaps=0;
  placeVehicle(player);
