@@ -605,7 +605,27 @@ if(e.data?.hancockDriveSpeed)MAP.driveSpeed=e.data.hancockDriveSpeed;
 if(e.data?.hancockLook)MAP.lookKeys[e.data.hancockLook]=e.data.down;
 if(e.data?.hancockSpeed){MAP.speed=e.data.hancockSpeed}if(e.data?.hancockZoom){const z=e.data.hancockZoom;if(z==='fit'){MAP.mode='top';camera.position.set(0,360,0)}else mapZoom((z==='in'?1:-1)*Math.max(12,MAP.speed*.45))}if(e.data?.hancockKey){MAP.keys[e.data.hancockKey]=!!e.data.down}if(e.data?.hancockEdit){MAP.edit=e.data.hancockEdit;if(MAP.edit==='road')mapHandles();MAP.handles.forEach(h=>h.visible=MAP.edit==='road');mapSay('Edit mode: '+MAP.edit)}if(e.data?.hancockSmooth){mapSave();mapSmooth();mapSmooth();mapRebuild();mapSay('Circuit smoothed; original road meshes removed: '+MAP.removedOriginalRoad)}if(e.data?.hancockUndo){const old=MAP.history.pop();if(old){points.forEach((p,i)=>{p[0]=old.points[i][0];p[1]=old.points[i][1]});MAP.changes=old.changes;mapRebuild();mapSay('Road points restored. Object undo is not yet supported.')}}if(e.data?.hancockExport){parent.postMessage({hancockExportData:{format:'hancock-editor-v1',track:ACTIVE_TRACK,points:points.map(p=>p.slice()),width:WIDTH,changes:MAP.changes,assets:MAP.assets.map(a=>({id:a.userData.assetId,kind:a.userData.assetType,name:a.userData.assetName,data:a.userData.assetData,position:a.position.toArray(),rotation:a.rotation.toArray().slice(0,3),scale:a.scale.toArray(),layer:a.userData.assetLayer||'midground',visible:a.visible,distance:a.userData.layerDistance||0,railAngle:a.userData.railAngle??null,railRadius:a.userData.railRadius??null,billboard:!!a.userData.billboard,curvature:a.userData.curvature??0})),warning:'Road edits need game integration and scenery realignment'}},'*')}});
 
+// Draw a non-interactive yellow selection outline, updated as objects move or scale.
+let mapSelectionOutline=null,mapSelectionTarget=null;
+function mapUpdateSelectionOutline(){
+ const target=MAP.selected&&MAP.selected.parent&&MAP.selected.visible?MAP.selected:null;
+ if(target!==mapSelectionTarget){
+  if(mapSelectionOutline){scene.remove(mapSelectionOutline);mapSelectionOutline.geometry.dispose();mapSelectionOutline.material.dispose();mapSelectionOutline=null}
+  mapSelectionTarget=target;
+  if(target){
+   mapSelectionOutline=new THREE.BoxHelper(target,0xffe45c);
+   mapSelectionOutline.material.depthTest=false;
+   mapSelectionOutline.material.transparent=true;
+   mapSelectionOutline.material.opacity=.95;
+   mapSelectionOutline.renderOrder=9999;
+   mapSelectionOutline.raycast=()=>{};
+   scene.add(mapSelectionOutline);
+  }
+ }
+ if(mapSelectionOutline){mapSelectionOutline.update();mapSelectionOutline.visible=!!target}
+}
 function mapRender(){
+ mapUpdateSelectionOutline();
  // The iframe viewport changes width when the tools sidebar is hidden.
  // Resize WebGL's drawing buffer and projection to the *actual* canvas
  // container on every layout transition, including Android landscape.
