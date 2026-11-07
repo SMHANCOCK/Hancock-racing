@@ -638,11 +638,15 @@ function mapRender(){
  // The iframe viewport changes width when the tools sidebar is hidden.
  // Resize WebGL's drawing buffer and projection to the *actual* canvas
  // container on every layout transition, including Android landscape.
- const host=renderer.domElement.parentElement;
- const viewW=Math.max(1,host.clientWidth||window.innerWidth);
- const viewH=Math.max(1,host.clientHeight||window.innerHeight);
- if(renderer.domElement.width!==Math.round(viewW*renderer.getPixelRatio())||renderer.domElement.height!==Math.round(viewH*renderer.getPixelRatio())){
-  renderer.setSize(viewW,viewH,false);
+ // The canvas was retaining its old CSS width after the sidebar changed.
+ // That stretched the image independently of the raycast camera projection,
+ // causing taps to select scenery to the right of the finger.
+ const viewW=Math.max(1,document.documentElement.clientWidth||window.innerWidth);
+ const viewH=Math.max(1,document.documentElement.clientHeight||window.innerHeight);
+ const canvasRect=renderer.domElement.getBoundingClientRect();
+ if(Math.abs(canvasRect.width-viewW)>1||Math.abs(canvasRect.height-viewH)>1||
+    Math.abs(camera.aspect-viewW/viewH)>.001){
+  renderer.setSize(viewW,viewH,true);
   camera.aspect=viewW/viewH;
   camera.updateProjectionMatrix();
  }
