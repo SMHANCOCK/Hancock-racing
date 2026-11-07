@@ -435,7 +435,7 @@ async function mapImportAsset(asset){
    sprite.position.y=h/2;group.add(sprite);
   }
   mapRegisterAsset(group,asset.kind,asset.name,asset.data);
-  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:100,foreground:0,innerBackground:65,innerMidground:45,innerForeground:20}[group.userData.assetLayer]??0);mapFeather(group,8)}
+  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:100,foreground:0,innerBackground:100,innerMidground:100,innerForeground:20}[group.userData.assetLayer]??0);mapFeather(group,8)}
  }catch(err){mapSay('Import failed: '+(err.message||err))}
 }
 async function mapBuildMonument(asset){
