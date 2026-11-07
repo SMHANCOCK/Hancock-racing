@@ -562,7 +562,7 @@ function mapHandles(){
  points.forEach((p,i)=>{const h=new THREE.Mesh(new THREE.SphereGeometry(3.5,10,8),new THREE.MeshBasicMaterial({color:0xffd44d,depthTest:false}));h.position.set(p[0],1,p[1]);h.userData.mapHandle=i;h.renderOrder=1000;scene.add(h);MAP.handles.push(h)});
 }
 const mapRay=new THREE.Raycaster(),mapMouse=new THREE.Vector2(),mapPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
-function mapPick(e){const r=cvs.getBoundingClientRect();camera.updateMatrixWorld(true);camera.updateProjectionMatrix();mapMouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);mapRay.setFromCamera(mapMouse,camera);return mapRay}
+function mapPick(e){const r=cvs.getBoundingClientRect();camera.updateMatrixWorld(true);camera.updateProjectionMatrix();const px=(e.clientX-r.left)/Math.max(1,r.width),py=(e.clientY-r.top)/Math.max(1,r.height);mapMouse.set(px*2-1,1-py*2);mapRay.setFromCamera(mapMouse,camera);return mapRay}
 let mapDrag=false,mapMoved=false,mapStartX=0,mapStartY=0,mapDragOffset=new THREE.Vector3(),mapDragPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
 cvs.addEventListener('pointerdown',e=>{if(e.button===2||MAP.edit==='none')return;if(MAP.touchTool==='move')e.preventDefault();mapStartX=e.clientX;mapStartY=e.clientY;mapMoved=false;const ray=mapPick(e);if(MAP.edit==='road'){const hits=ray.intersectObjects(MAP.handles,false);MAP.selected=hits[0]?.object||null}else if(MAP.edit==='select'){const hits=ray.intersectObjects(scene.children,true).filter(h=>{
  const o=h.object,g=o.geometry;
@@ -680,7 +680,7 @@ function mapRender(){
  }
  if(!MAP.canvasPinned){renderer.domElement.style.cssText+=';position:fixed!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;max-width:none!important;transform:none!important;';MAP.canvasPinned=true;}
  renderer.setScissorTest(false);
- renderer.setViewport(0,0,renderer.domElement.width,renderer.domElement.height);
+ renderer.setViewport(0,0,window.innerWidth,window.innerHeight);
  // Panoramas can be over 550 units away when viewed from the opposite side
  // of the circuit. Extend the editor/test-drive camera's far clipping plane.
  if(camera.far<1800){camera.far=1800;camera.updateProjectionMatrix()}
@@ -709,7 +709,7 @@ if(MAP.testDrive){
   else camera.position.lerp(desired,Math.min(1,dt*12));
   camera.lookAt(focus);
   camera.updateMatrixWorld();
-  renderer.setScissorTest(false);renderer.setViewport(0,0,renderer.domElement.width,renderer.domElement.height);
+  renderer.setScissorTest(false);renderer.setViewport(0,0,window.innerWidth,window.innerHeight);
   renderer.render(scene,camera);
  }
  if(!MAP.lastDriveReport||now-MAP.lastDriveReport>1000){MAP.lastDriveReport=now;parent.postMessage({hancockDriveTelemetry:{speed:Math.round(player.speed),visible:player.group.visible,frames:++MAP.driveReports}},'*')}
