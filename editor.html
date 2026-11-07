@@ -530,7 +530,7 @@ if(e.data?.hancockLayerAction)mapLayerAction(e.data.hancockLayerAction,e.data.id
 if(e.data?.hancockAsset)mapImportAsset(e.data.hancockAsset);
 if(e.data?.hancockAssetAction)mapAssetAction(e.data.hancockAssetAction,e.data.value);
 if(e.data?.hancockTestDrive){
- MAP.testDrive=true;MAP.driveReports=0;MAP.lastDriveReport=0;MAP.edit='none';MAP.keys={};MAP.testKeys={};
+ MAP.testDrive=true;MAP.chaseReady=false;MAP.driveReports=0;MAP.lastDriveReport=0;MAP.edit='none';MAP.keys={};MAP.testKeys={};
  player.t=.014;player.offset=-2.8;player.speed=0;
  const startFrame=frame(player.t);
  player.worldPos=startFrame.p.clone().addScaledVector(startFrame.normal,player.offset);
@@ -551,7 +551,7 @@ if(e.data?.hancockTestDrive){
  mapSay('Kart camera active — GAS to accelerate, arrows to steer.');
 }
 if(e.data?.hancockStopDrive){
- MAP.testDrive=false;MAP.testKeys={};running=false;player.group.visible=false;
+ MAP.testDrive=false;MAP.chaseReady=false;MAP.testKeys={};running=false;player.group.visible=false;
  mapSay('Returned to editor. Your map changes remain.');
 }
 if(e.data?.hancockRaceKey){MAP.testKeys[e.data.hancockRaceKey]=!!e.data.down;parent.postMessage({hancockDriveInput:e.data.hancockRaceKey+':'+e.data.down},'*')}
@@ -572,6 +572,20 @@ if(MAP.testDrive){
  if(!player.finished){update(dt);placeVehicle(player);}
  else {player.finished=false;player.lap=1;completedLaps=0;player.checkpoints=[false,false,false]}
  draw(dt);
+ // The embedded game draw() can leave the camera looking at an obsolete
+ // menu/editor target after entering race mode. Reassert the kart chase
+ // camera and render the current scene immediately, without requiring a
+ // manual camera-mode switch.
+ if(player.group?.visible){
+  const heading=new THREE.Vector3(Math.sin(player.group.rotation.y),0,Math.cos(player.group.rotation.y));
+  const focus=player.group.position.clone().addScaledVector(heading,9).add(new THREE.Vector3(0,2.3,0));
+  const desired=player.group.position.clone().addScaledVector(heading,-13).add(new THREE.Vector3(0,7,0));
+  if(!MAP.chaseReady){camera.position.copy(desired);MAP.chaseReady=true}
+  else camera.position.lerp(desired,Math.min(1,dt*12));
+  camera.lookAt(focus);
+  camera.updateMatrixWorld();
+  renderer.render(scene,camera);
+ }
  if(!MAP.lastDriveReport||now-MAP.lastDriveReport>1000){MAP.lastDriveReport=now;parent.postMessage({hancockDriveTelemetry:{speed:Math.round(player.speed),visible:player.group.visible,frames:++MAP.driveReports}},'*')}
  }catch(err){MAP.testDrive=false;parent.postMessage({hancockDriveError:String(err?.stack||err)},'*');mapSay('Test drive error: '+err.message)}
  return;
