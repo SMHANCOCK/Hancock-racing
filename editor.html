@@ -378,6 +378,14 @@ function mapLayerAction(action,id,value){
  mapLayerState();
 }
 MAP.testDrive=false;MAP.driveReports=0;MAP.testKeys={};
+// Snap the lowest point of an imported object's geometry to the map floor.
+// For curved PNGs this uses the actual deformed mesh bounds, not its centre.
+function mapGroundAsset(o){
+ if(!o)return;
+ o.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(o);
+ if(!bounds.isEmpty()&&Number.isFinite(bounds.min.y))o.position.y-=bounds.min.y;
+}
 function mapRegisterAsset(group,kind,name,data){
  group.userData.editorWholeObject=true;group.userData.editorKind='imported';group.userData.assetId=++MAP.assetCounter;
  group.userData.assetType=kind;group.userData.assetName=name;group.userData.assetData=data;
@@ -410,6 +418,8 @@ if(kind==='image'){
  else if(layer.startsWith('inner')){mapSnapRail(group,Math.atan2(camera.position.x-mapRailInfo().center.x,camera.position.z-mapRailInfo().center.z)*180/Math.PI)}
  else mapSnapRail(group,Math.atan2(horizontal.x,horizontal.z)*180/Math.PI);
 }
+// Place imported PNGs and 3D assets directly on the ground by default.
+mapGroundAsset(group);
 // Retain the user's current edit mode and camera controls.
 mapLayerState();mapSay(name+' added to '+group.userData.assetLayer+'. Camera stays in Look mode.');
 }
@@ -476,11 +486,7 @@ function mapAssetAction(action,value){
  const o=MAP.selected;
  if(!o||!o.userData?.editorWholeObject){mapSay('Select a complete imported asset first.');return}
  if(action==='height'){o.position.y+=value;mapSay('Height '+o.position.y.toFixed(1)+'m')}
- if(action==='ground'){
-  o.updateMatrixWorld(true);
-  const bounds=new THREE.Box3().setFromObject(o);
-  if(!bounds.isEmpty()){o.position.y-=bounds.min.y;mapSay('Object lowered to ground level')}
- }
+ if(action==='ground'){mapGroundAsset(o);mapSay('Object lowered to ground level')}
  if(action==='nudge'){const d={left:[-4,0],right:[4,0],forward:[0,-4],back:[0,4]}[value];if(d){if(o.userData.assetType==='image')mapSnapRail(o,(o.userData.railAngle||0)+(value==='left'?-3:value==='right'?3:value==='forward'?1:-1));else{o.position.x+=d[0];o.position.z+=d[1]}mapSay('Moved '+o.userData.assetName)}}
  if(action==='resize'){o.scale.multiplyScalar(value);mapSay('Size '+Math.round(o.scale.x*100)+'%')}
  if(action==='scale'){o.scale.setScalar(value);mapSay('Scale '+Math.round(value*100)+'%')}
