@@ -707,6 +707,9 @@ function mapRender(){
  // Panoramas can be over 550 units away when viewed from the opposite side
  // of the circuit. Extend the editor/test-drive camera's far clipping plane.
  if(camera.far<1800){camera.far=1800;camera.updateProjectionMatrix()}
+ // The live game's fog ends at roughly 330m, causing scenery to emerge abruptly during test drives.
+ // Keep the editor preview unobscured; this does not modify the actual racing game.
+ if(scene.fog)scene.fog=null;
  const now=performance.now(),dt=Math.min(.05,(now-MAP.last)/1000);MAP.last=now;
 for(const asset of MAP.assets){
  if(asset.visible&&asset.userData.billboard&&asset.userData.assetType==='image'&&asset.userData.assetLayer==='foreground'){
