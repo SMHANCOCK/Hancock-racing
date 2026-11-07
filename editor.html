@@ -754,6 +754,10 @@ if(boardStart>=0&&boardEnd>boardStart){
 s=s.replace('mesh(g,material)}ribbon(-WIDTH/2-2','const o=mesh(g,material);o.userData.editorOriginalRoad=true}ribbon(-WIDTH/2-2');const loopNeedle='}draw(dt)}placeVehicle(player);';
 if(!s.includes(loopNeedle))throw Error('Game loop patch failed: cannot activate playable test drive');
 s=s.replace(loopNeedle,'}mapRender()}placeVehicle(player);');
+// The live game's bootstrap resets the camera to (0,9,-20) AFTER the first
+// frame, and its loop still calls draw(). Both override editor navigation.
+// Remove the bootstrap camera reset only in the injected editor copy.
+s=s.replace('ais.forEach(placeVehicle);camera.position.set(0,9,-20);requestAnimationFrame(loop);','ais.forEach(placeVehicle);requestAnimationFrame(loop);');
 s=s.replace('if(running&&!paused){if(starting){','if(running&&!paused&&!MAP.testDrive){if(starting){');s=s.replace('requestAnimationFrame(loop);let dt=', 'requestAnimationFrame(loop);let dt=');s=s.replace("if(window.top===window&&!new URLSearchParams(location.search).has('standalone')){","if(false){");s=s.replace('function loop(now){',inject+'\nfunction loop(now){');s=s.replace('</head>','<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"}}</scr'+'ipt><style>html body #rotateNotice,html body #menu,html body #hud,html body #touch,html body #pause,html body #boardOpen,html body #boardModal,html body #help,html body #startLights{display:none!important}html,body{overflow:hidden!important}</style></head>');
 s=s.replace("const requestedTrack=launchParams.get('track')||sessionStorage.getItem('driftRushTrack');","const requestedTrack='"+$('track').value+"';");
 if(!s.includes('parent.postMessage({hancockMapReady:true}'))throw Error('Editor camera injection missing');const doc=$('scene').contentWindow.document;doc.open();doc.write(s);doc.close();
