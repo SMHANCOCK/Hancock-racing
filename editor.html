@@ -432,7 +432,7 @@ mapGroundAsset(group);
 // Retain the user's current edit mode and camera controls.
 mapLayerState();mapSay(name+' added to '+group.userData.assetLayer+'. Camera stays in Look mode.');
 }
-async async function mapImportAsset(asset){
+async function mapImportAsset(asset){
  try{
   if(!asset?.data||!['glb','image'].includes(asset.kind))throw Error('Unsupported asset');
   const group=new THREE.Group();MAP.pendingAssetLayer=['background','midground','foreground','innerBackground','innerMidground','innerForeground'].includes(asset.layer)?asset.layer:'midground';
