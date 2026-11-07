@@ -454,7 +454,7 @@ async function mapImportAsset(asset){
    sprite.position.y=h/2;group.add(sprite);
   }
   mapRegisterAsset(group,asset.kind,asset.name,asset.data);
-  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:100,foreground:0,innerBackground:100,innerMidground:100,innerForeground:20}[group.userData.assetLayer]??0);mapFeather(group,8)}
+  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:75,foreground:0,innerBackground:100,innerMidground:75,innerForeground:20}[group.userData.assetLayer]??0);mapFeather(group,8)}
  }catch(err){mapSay('Import failed: '+(err.message||err))}
 }
 async function mapBuildMonument(asset){
@@ -710,9 +710,11 @@ function mapRender(){
  // The live game's fog ends at roughly 330m, causing scenery to emerge abruptly during test drives.
  // Keep the editor preview unobscured; this does not modify the actual racing game.
  if(scene.fog)scene.fog=null;
+ // Mid-ground panoramas are fixed curved scenery, never camera-facing sprites.
+ for(const asset of MAP.assets){if(asset.userData.assetType==='image'&&['midground','innerMidground'].includes(asset.userData.assetLayer)){asset.userData.billboard=false;if(asset.userData.curvature!==75)mapCurveImage(asset,75)}}
  const now=performance.now(),dt=Math.min(.05,(now-MAP.last)/1000);MAP.last=now;
 for(const asset of MAP.assets){
- if(asset.visible&&asset.userData.billboard&&asset.userData.assetType==='image'&&asset.userData.assetLayer==='foreground'){
+ if(asset.visible&&asset.userData.billboard&&asset.userData.assetType==='image'&&['foreground','innerForeground'].includes(asset.userData.assetLayer)){
   asset.rotation.y=Math.atan2(camera.position.x-asset.position.x,camera.position.z-asset.position.z);
  }
 }
