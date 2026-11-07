@@ -678,7 +678,7 @@ function mapRender(){
   camera.aspect=viewW/viewH;
   camera.updateProjectionMatrix();
  }
- renderer.domElement.style.cssText+=';position:fixed!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;max-width:none!important;transform:none!important;';
+ if(!MAP.canvasPinned){renderer.domElement.style.cssText+=';position:fixed!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;max-width:none!important;transform:none!important;';MAP.canvasPinned=true;}
  renderer.setScissorTest(false);
  renderer.setViewport(0,0,renderer.domElement.width,renderer.domElement.height);
  // Panoramas can be over 550 units away when viewed from the opposite side
