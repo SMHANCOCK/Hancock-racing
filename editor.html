@@ -103,8 +103,11 @@ document.querySelectorAll('[data-key]').forEach(b=>{const key=b.dataset.key;cons
 $('smooth').onclick=()=>$('scene').contentWindow?.postMessage({hancockSmooth:true},'*');$('undo').onclick=()=>$('scene').contentWindow?.postMessage({hancockUndo:true},'*');
 $('export').onclick=()=>$('scene').contentWindow?.postMessage({hancockExport:true},'*');
 const projectKey=()=> 'hancock-editor-work-v1-'+$('track').value;
-$('saveProject').onclick=()=>editorPost({hancockSaveWork:true});
-$('resumeProject').onclick=()=>{let data;try{data=JSON.parse(localStorage.getItem(projectKey())||'null')}catch(e){}if(!data){$('status').textContent='No saved work for this track on this browser';return}editorPost({hancockRestoreWork:data});};
+function projectDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open('hancock-racing-editor',1);req.onupgradeneeded=()=>req.result.createObjectStore('tracks');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function projectStore(key,value){const db=await projectDB();return new Promise((resolve,reject)=>{const tx=db.transaction('tracks','readwrite');tx.objectStore('tracks').put(value,key);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)};tx.onabort=()=>{db.close();reject(tx.error)}})}
+async function projectRead(key){const db=await projectDB();return new Promise((resolve,reject)=>{const tx=db.transaction('tracks','readonly');const req=tx.objectStore('tracks').get(key);req.onsuccess=()=>{db.close();resolve(req.result)};req.onerror=()=>{db.close();reject(req.error)}})}
+$('saveProject').onclick=()=>{$('status').textContent='Saving track…';editorPost({hancockSaveWork:true})};
+$('resumeProject').onclick=async()=>{let data;try{data=await projectRead(projectKey());if(!data){const legacy=localStorage.getItem(projectKey());if(legacy)data=JSON.parse(legacy)}}catch(err){$('status').textContent='Cannot read saved track: '+err.message;return}if(!data){$('status').textContent='No saved work for this track on this browser';return}$('status').textContent='Restoring saved track…';editorPost({hancockRestoreWork:data})};
 
 const editorPost=data=>$('scene').contentWindow?.postMessage(data,'*');
 let sceneryItems=[],scenerySelected=null;
@@ -185,7 +188,7 @@ window.addEventListener('message',e=>{if(e.source!==$('scene').contentWindow)ret
 const selectedItem=sceneryItems.find(a=>a.id===scenerySelected);
 if(selectedItem){$('curveAmount').value=selectedItem.curvature??0;$('curveLabel').textContent=(selectedItem.curvature??0)+'%';$('featherAmount').value=selectedItem.feather??8;$('featherLabel').textContent=(selectedItem.feather??8)+'%';$('railAngle').value=selectedItem.railAngle??0;$('railAngleLabel').textContent=Math.round(selectedItem.railAngle??0)+'°';$('layerDistance').value=Math.min(1200,Math.max(5,selectedItem.distance||150));$('layerDistanceLabel').textContent=Math.round(selectedItem.distance||150)+'m';$('layerFaceCamera').textContent='Face camera: '+(selectedItem.billboard?'On':'Off')}
 renderSceneryLayers();return}
-if(e.data?.hancockSavedWork){try{localStorage.setItem(projectKey(),JSON.stringify(e.data.hancockSavedWork));$('status').textContent='Work saved on this device. Use Resume Saved after reopening the track.'}catch(err){$('status').textContent='Could not save locally (storage full). Export JSON as backup.'}return}
+if(e.data?.hancockSavedWork){const key='hancock-editor-work-v1-'+e.data.hancockSavedWork.track;projectStore(key,e.data.hancockSavedWork).then(()=>{$('status').textContent='Saved successfully on this device. Use Resume Saved to reopen.'}).catch(err=>{$('status').textContent='Save failed: '+err.message+'. Export JSON as backup.'});return}
 if(e.data?.hancockRestoredWork){$('status').textContent='Saved track restored. Continue editing, then Save Work again.';return}
 if(e.data?.hancockExportData){const blob=new Blob([JSON.stringify(e.data.hancockExportData,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hancock-'+$('track').value+'-edit.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);return}if(e.data?.hancockStatus){$('status').textContent=e.data.hancockStatus;return}if(e.data?.hancockMapError){$('state').textContent='Scene error';$('status').textContent=e.data.hancockMapError;clearTimeout(timer);return}if(!e.data?.hancockMapReady)return;clearTimeout(timer);$('state').textContent='Map loaded';$('status').textContent='Real scene loaded. WASD fly • Q/E altitude • Right-drag look.'});
 const inject=`
