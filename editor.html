@@ -216,7 +216,14 @@ if(e.data?.hancockTestDrive){
  player.t=.014;player.offset=-2.8;player.speed=0;player.worldPos=null;player.worldHeading=0;player.finished=false;player.lap=1;player.progress=0;player.checkpoints=[false,false,false];player.prevT=.014;
  player.group.visible=true;ais.forEach(a=>a.group.visible=false);
  running=true;paused=false;starting=false;mode='race';raceTime=0;completedLaps=0;
- placeVehicle(player);mapSay('Test driving edited circuit — steer, accelerate, brake and drift.');
+ placeVehicle(player);
+ cameraLookTarget=null;
+ const heading=new THREE.Vector3(Math.sin(player.group.rotation.y),0,Math.cos(player.group.rotation.y));
+ camera.position.copy(player.group.position).addScaledVector(heading,-13).add(new THREE.Vector3(0,7,0));
+ camera.lookAt(player.group.position.clone().addScaledVector(heading,11).add(new THREE.Vector3(0,2,0)));
+ camera.fov=67;camera.updateProjectionMatrix();
+ MAP.last=performance.now();
+ mapSay('Kart camera active — GAS to accelerate, arrows to steer.');
 }
 if(e.data?.hancockStopDrive){
  MAP.testDrive=false;MAP.testKeys={};running=false;player.group.visible=false;
@@ -231,7 +238,7 @@ if(e.data?.hancockSpeed){MAP.speed=e.data.hancockSpeed}if(e.data?.hancockZoom){c
 function mapRender(){const now=performance.now(),dt=Math.min(.05,(now-MAP.last)/1000);MAP.last=now;
 if(MAP.testDrive){
  touch.left=!!MAP.testKeys.left;touch.right=!!MAP.testKeys.right;touch.gas=!!MAP.testKeys.gas;touch.brake=!!MAP.testKeys.brake;touch.drift=!!MAP.testKeys.drift;
- if(!player.finished)update(dt);
+ if(!player.finished){update(dt);placeVehicle(player);}
  else {player.finished=false;player.lap=1;completedLaps=0;player.checkpoints=[false,false,false]}
  draw(dt);return;
 }
@@ -270,7 +277,10 @@ if(boardStart>=0&&boardEnd>boardStart){
  s=s.slice(0,boardStart)+section+s.slice(boardEnd);
 }
 
-s=s.replace('mesh(g,material)}ribbon(-WIDTH/2-2','const o=mesh(g,material);o.userData.editorOriginalRoad=true}ribbon(-WIDTH/2-2');s=s.replace('}draw(dt)}placeVehicle(player);','}mapRender()}placeVehicle(player);');s=s.replace('requestAnimationFrame(loop);let dt=', 'requestAnimationFrame(loop);let dt=');s=s.replace("if(window.top===window&&!new URLSearchParams(location.search).has('standalone')){","if(false){");s=s.replace('function loop(now){',inject+'\nfunction loop(now){');s=s.replace('</head>','<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"}}</scr'+'ipt><style>html body #rotateNotice,html body #menu,html body #hud,html body #touch,html body #pause,html body #boardOpen,html body #boardModal,html body #help,html body #startLights{display:none!important}html,body{overflow:hidden!important}</style></head>');
+s=s.replace('mesh(g,material)}ribbon(-WIDTH/2-2','const o=mesh(g,material);o.userData.editorOriginalRoad=true}ribbon(-WIDTH/2-2');const loopNeedle='}draw(dt)}placeVehicle(player);';
+if(!s.includes(loopNeedle))throw Error('Game loop patch failed: cannot activate playable test drive');
+s=s.replace(loopNeedle,'}mapRender()}placeVehicle(player);');
+s=s.replace('if(running&&!paused){if(starting){','if(running&&!paused&&!MAP.testDrive){if(starting){');s=s.replace('requestAnimationFrame(loop);let dt=', 'requestAnimationFrame(loop);let dt=');s=s.replace("if(window.top===window&&!new URLSearchParams(location.search).has('standalone')){","if(false){");s=s.replace('function loop(now){',inject+'\nfunction loop(now){');s=s.replace('</head>','<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js"}}</scr'+'ipt><style>html body #rotateNotice,html body #menu,html body #hud,html body #touch,html body #pause,html body #boardOpen,html body #boardModal,html body #help,html body #startLights{display:none!important}html,body{overflow:hidden!important}</style></head>');
 s=s.replace("const requestedTrack=launchParams.get('track')||sessionStorage.getItem('driftRushTrack');","const requestedTrack='"+$('track').value+"';");
 if(!s.includes('parent.postMessage({hancockMapReady:true}'))throw Error('Editor camera injection missing');const doc=$('scene').contentWindow.document;doc.open();doc.write(s);doc.close();
 timer=setTimeout(()=>{$('state').textContent='Load timed out';$('status').textContent='Scene failed to initialise. Check browser console for module errors.'},18000)
