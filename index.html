@@ -1071,7 +1071,7 @@ if(SUNSET_FINAL_PREVIEW){
   const h=16,w=h*img.naturalWidth/Math.max(1,img.naturalHeight);
   const group=new THREE.Group();
   const material=new THREE.MeshBasicMaterial({map:texture,transparent:false,side:THREE.DoubleSide,depthTest:true,depthWrite:true,alphaTest:.08,fog:false});
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h,32,1),material);
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h,a.layer==='midground'?96:32,1),material);
   mesh.position.y=h/2;mesh.frustumCulled=false;
   // Alpha-tested opaque cutouts participate in the depth buffer consistently.
   // Avoid transparent-object sorting changes when curved panoramas overlap.
@@ -1089,15 +1089,15 @@ if(SUNSET_FINAL_PREVIEW){
   }
   group.add(mesh);
   group.position.fromArray(a.position);
-  // Stagger individual background PNGs across four shallow concentric rails.
-  // This separates adjacent curved panels without changing their angles, height or scale.
+  // Stagger background PNGs only. Keep midground panels at their exact exported
+  // rail positions so adjacent images retain the editor's intended joins.
   if(a.layer==='background'||a.layer==='midground'){
    const centerX=points.reduce((sum,p)=>sum+p[0],0)/points.length;
    const centerZ=points.reduce((sum,p)=>sum+p[1],0)/points.length;
    const dx=group.position.x-centerX,dz=group.position.z-centerZ;
    const distance=Math.hypot(dx,dz);
    if(distance>1){
-    const outward=a.layer==='background'?(8+(assetIndex%4)*4):1.5;
+    const outward=a.layer==='background'?(8+(assetIndex%4)*4):0;
     group.position.x+=dx/distance*outward;
     group.position.z+=dz/distance*outward;
    }
