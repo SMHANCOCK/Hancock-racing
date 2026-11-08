@@ -10,6 +10,9 @@ if(requestedVersion&&/^\d{2,12}$/.test(requestedVersion)){
  gameURL.searchParams.set('v',requestedVersion);
  const racer=new URLSearchParams(location.search).get('racer');
  if(racer)gameURL.searchParams.set('racer',racer.slice(0,24));
+ // Forward circuit and preview parameters to the actual game iframe.
+ const shellParams=new URLSearchParams(location.search);
+ for(const key of ['track','sunsetFinal','autostart']){const value=shellParams.get(key);if(value!==null)gameURL.searchParams.set(key,value)}
  frame.src=gameURL.href;
 }
 frame.addEventListener('load',()=>{try{frame.contentWindow.focus()}catch(e){}});
