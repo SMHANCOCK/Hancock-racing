@@ -1066,12 +1066,12 @@ if(SUNSET_FINAL_PREVIEW){
   tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
   return tex;
  };
- const addImage=async (a,assetIndex)=>{
+ const addImage=async a=>{
   const img=await loadImage(a.data),texture=makeTexture(img,a.layer);
   const h=16,w=h*img.naturalWidth/Math.max(1,img.naturalHeight);
   const group=new THREE.Group();
   const material=new THREE.MeshBasicMaterial({map:texture,transparent:false,side:THREE.DoubleSide,depthTest:true,depthWrite:true,alphaTest:.08,fog:false});
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h,a.layer==='midground'?96:32,1),material);
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h,32,1),material);
   mesh.position.y=h/2;mesh.frustumCulled=false;
   // Alpha-tested opaque cutouts participate in the depth buffer consistently.
   // Avoid transparent-object sorting changes when curved panoramas overlap.
@@ -1088,22 +1088,7 @@ if(SUNSET_FINAL_PREVIEW){
    p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();
   }
   group.add(mesh);
-  group.position.fromArray(a.position);
-  // Stagger background PNGs only. Keep midground panels at their exact exported
-  // rail positions so adjacent images retain the editor's intended joins.
-  if(a.layer==='background'||a.layer==='midground'){
-   const centerX=points.reduce((sum,p)=>sum+p[0],0)/points.length;
-   const centerZ=points.reduce((sum,p)=>sum+p[1],0)/points.length;
-   const dx=group.position.x-centerX,dz=group.position.z-centerZ;
-   const distance=Math.hypot(dx,dz);
-   if(distance>1){
-    const outward=a.layer==='background'?(8+(assetIndex%4)*4):0;
-    group.position.x+=dx/distance*outward;
-    group.position.z+=dz/distance*outward;
-   }
-  }
-  if(SUNSET_FINAL_PREVIEW&&a.layer==='foreground'&&group.position.y>12)group.position.y=0;
-  group.rotation.set(...a.rotation);group.scale.fromArray(a.scale);
+  group.position.fromArray(a.position);if(SUNSET_FINAL_PREVIEW&&a.layer==='foreground'&&group.position.y>12)group.position.y=0;group.rotation.set(...a.rotation);group.scale.fromArray(a.scale);
   group.visible=a.visible!==false;group.name='Export: '+a.name;scenery.add(group);
  };
  const addMonument=async a=>{
@@ -1128,50 +1113,11 @@ if(SUNSET_FINAL_PREVIEW){
   // Decode assets concurrently, but only reveal the complete scene together.
   scenery.visible=false;
   const assets=parts.flatMap(part=>part.assets);
-  await Promise.all(assets.map(async (asset,assetIndex)=>{
-   try{if(asset.kind==='image'&&asset.layer==='foreground'&&(/sunset|raceway|sign/i.test(asset.name)||asset.name==='17039.png')){loaded++;return}if(asset.kind==='image')await addImage(asset,assetIndex);else if(asset.kind==='monument')await addMonument(asset);loaded++}
+  await Promise.all(assets.map(async asset=>{
+   try{if(asset.kind==='image'&&asset.layer==='foreground'&&(/sunset|raceway|sign/i.test(asset.name)||asset.name==='17039.png')){loaded++;return}if(asset.kind==='image')await addImage(asset);else if(asset.kind==='monument')await addMonument(asset);loaded++}
    catch(e){failures++;console.warn('Sunset asset failed',asset.name,e)}
    banner.textContent='SUNSET FINAL — '+loaded+'/'+assets.length+' scenery objects';
   }));
-  // Rebuild the mid-ground as one mathematically continuous 360-degree panorama.
-  // Every image shares a single circular radius, and adjacent curved mesh edges
-  // meet exactly: no per-image radial offsets, gaps or overlapping angular spans.
-  const mids=assets.filter(a=>a.kind==='image'&&a.layer==='midground'&&a.visible!==false)
-   .map(a=>({a,group:scenery.children.find(g=>g.name==='Export: '+a.name)}))
-   .filter(item=>item.group);
-  if(mids.length>1){
-   const centerX=points.reduce((sum,p)=>sum+p[0],0)/points.length;
-   const centerZ=points.reduce((sum,p)=>sum+p[1],0)/points.length;
-   const angleOf=item=>Number.isFinite(Number(item.a.railAngle))&&item.a.railAngle!==null
-    ?((Number(item.a.railAngle)%360)+360)%360
-    :((Math.atan2(item.group.position.x-centerX,item.group.position.z-centerZ)*180/Math.PI)%360+360)%360;
-   mids.sort((a,b)=>angleOf(a)-angleOf(b));
-   const radius=mids.reduce((sum,item)=>sum+Math.hypot(item.group.position.x-centerX,item.group.position.z-centerZ),0)/mids.length;
-   const widths=mids.map(item=>{
-    const mesh=item.group.children.find(c=>c.isMesh);
-    return mesh.geometry.parameters.width*Math.abs(item.group.scale.x);
-   });
-   const totalWidth=widths.reduce((a,b)=>a+b,0);
-   let edge=(angleOf(mids[0])-180*widths[0]/totalWidth)*Math.PI/180;
-   for(let i=0;i<mids.length;i++){
-    const {group}=mids[i],mesh=group.children.find(c=>c.isMesh);
-    const span=2*Math.PI*widths[i]/totalWidth,angle=edge+span/2;
-    group.position.x=centerX+Math.sin(angle)*radius;
-    group.position.z=centerZ+Math.cos(angle)*radius;
-    group.rotation.y=angle+Math.PI;
-    const localRadius=radius/Math.max(.001,Math.abs(group.scale.x));
-    const geometry=new THREE.PlaneGeometry(mesh.geometry.parameters.width,mesh.geometry.parameters.height,64,1);
-    const positions=geometry.attributes.position;
-    for(let j=0;j<positions.count;j++){
-     const theta=(positions.getX(j)/mesh.geometry.parameters.width)*span;
-     positions.setX(j,localRadius*Math.sin(theta));
-     positions.setZ(j,localRadius*(1-Math.cos(theta)));
-    }
-    positions.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingSphere();
-    mesh.geometry.dispose();mesh.geometry=geometry;
-    edge+=span;
-   }
-  }
   scenery.visible=true;
   banner.textContent='SUNSET FINAL — '+loaded+' objects'+(failures?' ('+failures+' failed)':'');
   setTimeout(()=>banner.remove(),7000);
@@ -1654,38 +1600,6 @@ if(SUNSET_FINAL_PREVIEW){
   dummy.position.y=-.27;dummy.scale.set(width*.86,height*.91,width*.58);dummy.updateMatrix();tops.setMatrixAt(count++,dummy.matrix);
  }
  for(const m of [banks,tops]){m.count=count;m.instanceMatrix.needsUpdate=true;m.frustumCulled=false;scene.add(m)}
-}
-// Low, sunlit atmospheric haze at the outer grass / mid-ground transition.
-// Local translucent ground-hugging ribbons, not scene-wide fog.
-if(SUNSET_FINAL_PREVIEW){
- const center=new THREE.Vector3();
- for(const p of points){center.x+=p[0];center.z+=p[1]}
- center.multiplyScalar(1/points.length);
- let extent=0;
- for(const p of points)extent=Math.max(extent,Math.hypot(p[0]-center.x,p[1]-center.z));
- const radius=extent+54,segments=192;
- const c=document.createElement('canvas');c.width=128;c.height=64;
- const ctx=c.getContext('2d');
- const gradient=ctx.createLinearGradient(0,0,0,64);
- gradient.addColorStop(0,'rgba(255,215,146,0)');
- gradient.addColorStop(.24,'rgba(255,213,148,.07)');
- gradient.addColorStop(.58,'rgba(255,219,166,.23)');
- gradient.addColorStop(1,'rgba(255,221,168,0)');
- ctx.fillStyle=gradient;ctx.fillRect(0,0,128,64);
- const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
- const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,fog:false,opacity:.32});
- const vertices=[],uv=[],indices=[];
- for(let i=0;i<=segments;i++){
-  const angle=i/segments*Math.PI*2,x=center.x+Math.sin(angle)*radius,z=center.z+Math.cos(angle)*radius;
-  vertices.push(x,.08,z,x,2.8,z);
-  uv.push(i/segments*12,1,i/segments*12,0);
-  if(i<segments){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2)}
- }
- const geometry=new THREE.BufferGeometry();
- geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
- geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
- geometry.setIndex(indices);geometry.computeVertexNormals();
- const haze=new THREE.Mesh(geometry,mat);haze.frustumCulled=false;haze.renderOrder=0;haze.name='Sunset outer grass golden haze';scene.add(haze);
 }
 // Sunset Circuit has no visual or physical safety barriers.
 
