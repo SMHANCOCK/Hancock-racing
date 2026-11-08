@@ -1112,7 +1112,7 @@ if(SUNSET_FINAL_PREVIEW){
   scenery.visible=false;
   const assets=parts.flatMap(part=>part.assets);
   await Promise.all(assets.map(async asset=>{
-   try{if(asset.kind==='image'&&asset.layer==='foreground'&&/sunset|raceway|sign/i.test(asset.name)){loaded++;continue}if(asset.kind==='image')await addImage(asset);else if(asset.kind==='monument')await addMonument(asset);loaded++}
+   try{if(asset.kind==='image'&&asset.layer==='foreground'&&/sunset|raceway|sign/i.test(asset.name)){loaded++;return}if(asset.kind==='image')await addImage(asset);else if(asset.kind==='monument')await addMonument(asset);loaded++}
    catch(e){failures++;console.warn('Sunset asset failed',asset.name,e)}
    banner.textContent='SUNSET FINAL — '+loaded+'/'+assets.length+' scenery objects';
   }));
