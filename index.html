@@ -1047,7 +1047,7 @@ const points=ACTIVE_TRACK==='london'?
 [[0,-89],[27,-100],[57,-99],[91,-82],[115,-56],[132,-25],[126,10],[111,38],[86,63],[58,70],[31,87],[-2,92],[-37,75],[-68,87],[-99,76],[-127,53],[-137,20],[-130,-14],[-109,-39],[-91,-70],[-63,-91],[-32,-101]]:
 [[0,-65],[44,-70],[91,-46],[105,-7],[96,25],[70,48],[47,65],[7,73],[-35,59],[-72,72],[-102,55],[-112,34],[-105,-10],[-79,-53],[-39,-74]];const N=points.length;
 
-const SUNSET_FINAL_PREVIEW=ACTIVE_TRACK==='sunset'&&new URLSearchParams(location.search).get('sunsetFinal')==='1';
+const SUNSET_FINAL_PREVIEW=ACTIVE_TRACK==='sunset'&&new URLSearchParams(location.search).get('sunsetFinal')!=='0';
 if(SUNSET_FINAL_PREVIEW){
  // Preview is opt-in: production circuits, controls and timing remain untouched.
  camera.far=1200;camera.updateProjectionMatrix();
