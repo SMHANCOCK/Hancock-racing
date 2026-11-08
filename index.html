@@ -1504,6 +1504,65 @@ if(SUNSET_FINAL_PREVIEW){
  trunks.count=treeCount;crowns.count=treeCount;trunks.instanceMatrix.needsUpdate=true;crowns.instanceMatrix.needsUpdate=true;
  trunks.frustumCulled=false;crowns.frustumCulled=false;scene.add(trunks,crowns);
 }
+// Sunset Final: rustic roadside fence segments and hay-bale clusters.
+// Instanced meshes keep the extra scenery inexpensive on mobile.
+if(SUNSET_FINAL_PREVIEW){
+ const fenceWood=new THREE.MeshStandardMaterial({color:0x8b6241,roughness:1,flatShading:true});
+ const fenceDark=new THREE.MeshStandardMaterial({color:0x69462e,roughness:1,flatShading:true});
+ const hayGold=new THREE.MeshStandardMaterial({color:0xd6a64c,roughness:1,flatShading:true});
+ const hayShade=new THREE.MeshStandardMaterial({color:0xb98935,roughness:1,flatShading:true});
+ const postGeo=new THREE.BoxGeometry(.55,3.2,.6),railGeo=new THREE.BoxGeometry(.3,.38,1);
+ const baleGeo=new THREE.CylinderGeometry(1,1,1,9);
+ const postMesh=new THREE.InstancedMesh(postGeo,fenceWood,150);
+ const railMesh=new THREE.InstancedMesh(railGeo,fenceDark,260);
+ const baleMesh=new THREE.InstancedMesh(baleGeo,hayGold,105);
+ const baleEnds=new THREE.InstancedMesh(new THREE.CylinderGeometry(1.02,1.02,.055,9),hayShade,105);
+ const dummy=new THREE.Object3D();let np=0,nr=0,nb=0;
+ // Place short fence runs with open gaps, instead of enclosing the whole circuit.
+ for(let section=0;section<11;section++){
+  const start=(section*.087+.025)%1,side=section%2===0?1:-1;
+  const posts=[];
+  for(let k=0;k<7;k++){
+   const f=frame((start+k*.0028)%1);
+   const p=f.p.clone().addScaledVector(f.normal,side*(WIDTH/2+23+(section%3)*5));
+   let safe=true;
+   for(let j=0;j<100;j++){const q=frame(j/100).p;if(Math.hypot(p.x-q.x,p.z-q.z)<WIDTH/2+16){safe=false;break}}
+   if(!safe){posts.push(null);continue}
+   posts.push(p);
+   dummy.position.set(p.x,1.6,p.z);dummy.rotation.set(0,Math.atan2(f.tan.x,f.tan.z),0);
+   dummy.scale.set(1,1,1);dummy.updateMatrix();postMesh.setMatrixAt(np++,dummy.matrix);
+  }
+  for(let k=0;k<posts.length-1;k++){
+   const a=posts[k],b=posts[k+1];if(!a||!b)continue;
+   const dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);
+   if(len>9||len<.5)continue;
+   for(const y of [1.15,2.3]){
+    dummy.position.set((a.x+b.x)/2,y,(a.z+b.z)/2);
+    dummy.rotation.set(0,Math.atan2(dx,dz),0);dummy.scale.set(1,1,len);dummy.updateMatrix();
+    railMesh.setMatrixAt(nr++,dummy.matrix);
+   }
+  }
+ }
+ // Hay bales in groups of three, well outside the driving corridor.
+ for(let group=0;group<21;group++){
+  const f=frame((group*.046+.038)%1),side=group%2===0?-1:1;
+  const base=f.p.clone().addScaledVector(f.normal,side*(WIDTH/2+28+(group%3)*7));
+  let safe=true;
+  for(let j=0;j<110;j++){const q=frame(j/110).p;if(Math.hypot(base.x-q.x,base.z-q.z)<WIDTH/2+20){safe=false;break}}
+  if(!safe)continue;
+  for(let k=0;k<3;k++){
+   const x=base.x+f.tan.x*(k-1)*2.5+f.normal.x*side*(k%2)*.6;
+   const z=base.z+f.tan.z*(k-1)*2.5+f.normal.z*side*(k%2)*.6;
+   const radius=1.15+(group%3)*.13;
+   dummy.position.set(x,radius,z);dummy.rotation.set(Math.PI/2,0,group*.41+k*.25);
+   dummy.scale.set(radius,1.7,radius);dummy.updateMatrix();baleMesh.setMatrixAt(nb,dummy.matrix);
+   dummy.scale.set(radius,1.75,radius);dummy.updateMatrix();baleEnds.setMatrixAt(nb++,dummy.matrix);
+  }
+ }
+ for(const [m,n] of [[postMesh,np],[railMesh,nr],[baleMesh,nb],[baleEnds,nb]]){
+  m.count=n;m.instanceMatrix.needsUpdate=true;m.frustumCulled=false;m.castShadow=false;m.receiveShadow=true;scene.add(m);
+ }
+}
 // Sunset Circuit has no visual or physical safety barriers.
 
 // Billboard footprints are reserved before scenery is generated.
