@@ -434,12 +434,14 @@ const horizontal=facing.clone().setY(0);
 if(horizontal.lengthSq()<.01)horizontal.set(0,0,-1);
 horizontal.normalize();
 const layer=group.userData.assetLayer;
-const distance=MAP.layerDistances[layer]||35;
+const distance=(kind==='image'&&group.userData.placementMode==='free'&&['foreground','innerForeground'].includes(layer))?12:(MAP.layerDistances[layer]||35);
 group.userData.layerDistance=distance;
 group.userData.billboard=false;
 if(kind==='image')group.scale.setScalar(MAP.layerSizes[layer]||1);
 const placement=camera.position.clone().addScaledVector(horizontal,distance);
 group.position.set(placement.x,0,placement.z);
+// Foreground imports must start clearly visible above the ground, not hidden by track geometry.
+if(kind==='image'&&group.userData.placementMode==='free'&&['foreground','innerForeground'].includes(layer))group.position.y=Math.max(0,camera.position.y-5);
 if(kind==='image'){
  group.rotation.y=Math.atan2(camera.position.x-placement.x,camera.position.z-placement.z);
  if(group.userData.placementMode==='free'){group.userData.railAngle=null;group.userData.railRadius=null;}
@@ -456,7 +458,7 @@ if(kind==='image'){
  else mapSnapRail(group,Math.atan2(horizontal.x,horizontal.z)*180/Math.PI);
 }
 // Place imported PNGs and 3D assets directly on the ground by default.
-mapGroundAsset(group);
+if(!(kind==='image'&&group.userData.placementMode==='free'&&['foreground','innerForeground'].includes(layer)))mapGroundAsset(group);
 // Retain the user's current edit mode and camera controls.
 mapLayerState();mapSay(name+' added to '+group.userData.assetLayer+'. Camera stays in Look mode.');
 }
