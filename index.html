@@ -1066,7 +1066,7 @@ if(SUNSET_FINAL_PREVIEW){
   tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
   return tex;
  };
- const addImage=async a=>{
+ const addImage=async (a,assetIndex)=>{
   const img=await loadImage(a.data),texture=makeTexture(img,a.layer);
   const h=16,w=h*img.naturalWidth/Math.max(1,img.naturalHeight);
   const group=new THREE.Group();
@@ -1089,15 +1089,15 @@ if(SUNSET_FINAL_PREVIEW){
   }
   group.add(mesh);
   group.position.fromArray(a.position);
-  // Separate the two curved panorama rails in world space to avoid near-coplanar
-  // depth-buffer fighting while retaining every image's angular alignment and scale.
+  // Stagger individual background PNGs across four shallow concentric rails.
+  // This separates adjacent curved panels without changing their angles, height or scale.
   if(a.layer==='background'||a.layer==='midground'){
    const centerX=points.reduce((sum,p)=>sum+p[0],0)/points.length;
    const centerZ=points.reduce((sum,p)=>sum+p[1],0)/points.length;
    const dx=group.position.x-centerX,dz=group.position.z-centerZ;
    const distance=Math.hypot(dx,dz);
    if(distance>1){
-    const outward=a.layer==='background'?12:1.5;
+    const outward=a.layer==='background'?(8+(assetIndex%4)*4):1.5;
     group.position.x+=dx/distance*outward;
     group.position.z+=dz/distance*outward;
    }
@@ -1128,8 +1128,8 @@ if(SUNSET_FINAL_PREVIEW){
   // Decode assets concurrently, but only reveal the complete scene together.
   scenery.visible=false;
   const assets=parts.flatMap(part=>part.assets);
-  await Promise.all(assets.map(async asset=>{
-   try{if(asset.kind==='image'&&asset.layer==='foreground'&&(/sunset|raceway|sign/i.test(asset.name)||asset.name==='17039.png')){loaded++;return}if(asset.kind==='image')await addImage(asset);else if(asset.kind==='monument')await addMonument(asset);loaded++}
+  await Promise.all(assets.map(async (asset,assetIndex)=>{
+   try{if(asset.kind==='image'&&asset.layer==='foreground'&&(/sunset|raceway|sign/i.test(asset.name)||asset.name==='17039.png')){loaded++;return}if(asset.kind==='image')await addImage(asset,assetIndex);else if(asset.kind==='monument')await addMonument(asset);loaded++}
    catch(e){failures++;console.warn('Sunset asset failed',asset.name,e)}
    banner.textContent='SUNSET FINAL — '+loaded+'/'+assets.length+' scenery objects';
   }));
