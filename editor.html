@@ -716,6 +716,9 @@ function mapRender(){
  // The live game's fog ends at roughly 330m, causing scenery to emerge abruptly during test drives.
  // Keep the editor preview unobscured; this does not modify the actual racing game.
  if(scene.fog)scene.fog=null;
+ // Curved imported panoramas can be incorrectly culled while the chase camera turns.
+ // Keep only landscape-image meshes submitted to the renderer; preserve 3D object culling.
+ for(const asset of MAP.assets){if(asset.userData.assetType==='image'&&['background','midground','innerBackground','innerMidground'].includes(asset.userData.assetLayer)){asset.traverse(child=>{if(child.isMesh)child.frustumCulled=false})}}
  // Mid-ground panoramas are fixed curved scenery, never camera-facing sprites.
  for(const asset of MAP.assets){if(asset.userData.assetType==='image'&&asset.userData.placementMode!=='free'&&['midground','innerMidground'].includes(asset.userData.assetLayer)){asset.userData.billboard=false;if(asset.userData.curvature!==75)mapCurveImage(asset,75)}}
  const now=performance.now(),dt=Math.min(.05,(now-MAP.last)/1000);MAP.last=now;
