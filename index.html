@@ -1070,9 +1070,11 @@ if(SUNSET_FINAL_PREVIEW){
   const img=await loadImage(a.data),texture=makeTexture(img,a.layer);
   const h=16,w=h*img.naturalWidth/Math.max(1,img.naturalHeight);
   const group=new THREE.Group();
-  const material=new THREE.MeshBasicMaterial({map:texture,transparent:true,side:THREE.DoubleSide,depthTest:true,depthWrite:true,alphaTest:.08,fog:false});
+  const material=new THREE.MeshBasicMaterial({map:texture,transparent:false,side:THREE.DoubleSide,depthTest:true,depthWrite:true,alphaTest:.08,fog:false});
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h,32,1),material);
   mesh.position.y=h/2;mesh.frustumCulled=false;
+  // Alpha-tested opaque cutouts participate in the depth buffer consistently.
+  // Avoid transparent-object sorting changes when curved panoramas overlap.
   const strength=Math.max(0,Math.min(1,(a.curvature||0)/100));
   if(strength>0){
    const rail=a.railRadius||250,scale=Math.max(.001,Math.abs(a.scale?.[0]||1));
