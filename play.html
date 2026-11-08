@@ -3,6 +3,23 @@
 <style>html,body{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;background:#080b10}#game{display:block;border:0;width:100%;height:100%;height:100dvh}html:fullscreen,html:fullscreen body{width:100%;height:100%}html:fullscreen #game{height:100%}</style></head>
 <body><iframe id="game" title="HANCOCK Racing Co." allow="fullscreen; screen-wake-lock" allowfullscreen src="index.html?embedded=1&v=14933"></iframe><script>
 const frame=document.getElementById('game');
+// Persist Sunset scenery downloads across track iframe navigation.
+let sunsetPartsPromise=null;
+function preloadSunsetParts(){
+ if(!sunsetPartsPromise){
+  sunsetPartsPromise=Promise.all([1,2,3].map(async n=>{
+   const response=await fetch('sunset-raceway-part-'+n+'.json');
+   if(!response.ok)throw Error('Sunset scenery '+n+': '+response.status);
+   return response.json();
+  })).catch(error=>{sunsetPartsPromise=null;throw error});
+ }
+ return sunsetPartsPromise;
+}
+window.hancockPreloadSunsetParts=preloadSunsetParts;
+window.addEventListener('message',event=>{
+ if(event.origin===location.origin&&event.source===frame.contentWindow&&event.data?.hancockPreloadSunset)preloadSunsetParts().catch(console.warn);
+});
+
 const requestedVersion=new URLSearchParams(location.search).get('v') || '14933';
 if(requestedVersion&&/^\d{2,12}$/.test(requestedVersion)){
  const gameURL=new URL('index.html',location.href);
