@@ -309,7 +309,8 @@ function mapFeather(o,percent){
  image.onload=()=>{
   const w=image.naturalWidth,h=image.naturalHeight;
   // Limit backing canvas to preserve memory and mobile GPU performance.
-  const factor=Math.min(1,2048/Math.max(w,h));
+  const isMid=['midground','innerMidground'].includes(o.userData.assetLayer);
+  const factor=Math.min(1,(isMid?4096:2048)/Math.max(w,h));
   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(w*factor));canvas.height=Math.max(1,Math.round(h*factor));
   const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0,canvas.width,canvas.height);
   const p=Math.max(0,Math.min(25,percent))/100;
@@ -325,7 +326,7 @@ function mapFeather(o,percent){
    m.fillStyle=gradient;m.fillRect(0,0,canvas.width,canvas.height);
    ctx.globalCompositeOperation='destination-in';ctx.drawImage(mask,0,0);
   }
-  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
   const old=mesh.material.map;mesh.material.map=texture;mesh.material.needsUpdate=true;
   if(old)old.dispose();
   o.userData.feather=percent;mapLayerState();mapSay('Soft edges: '+percent+'% — '+o.userData.assetName);
@@ -480,7 +481,7 @@ async function mapImportAsset(asset){
    sprite.position.y=h/2;group.add(sprite);
   }
   mapRegisterAsset(group,asset.kind,asset.name,asset.data);
-  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:100,foreground:0,innerBackground:100,innerMidground:100,innerForeground:20}[group.userData.assetLayer]??0);mapFeather(group,8)}
+  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:100,foreground:0,innerBackground:100,innerMidground:100,innerForeground:20}[group.userData.assetLayer]??0);mapFeather(group,['midground','innerMidground'].includes(group.userData.assetLayer)?0:8)}
  }catch(err){mapSay('Import failed: '+(err.message||err))}
 }
 async function mapBuildMonument(asset){
@@ -689,7 +690,7 @@ if(e.data?.hancockRestoreWork){
  const objects=scene.children.filter(o=>o.userData?.editorWholeObject&&!o.userData?.assetId);
  let restoredObjects=0;(saved.objects||[]).forEach((a,i)=>{const o=objects[a.index??i];if(!o||o.userData.editorKind!==a.kind)return;o.position.fromArray(a.position);o.rotation.set(...a.rotation);o.scale.fromArray(a.scale);o.updateMatrixWorld(true);restoredObjects++});
  for(const old of [...MAP.assets])scene.remove(old);MAP.assets=[];MAP.selected=null;
- (async()=>{for(const a of saved.assets||[]){if(a.kind==='monument')await mapBuildMonument({data:a.data});else await mapImportAsset({kind:a.kind,name:a.name,data:a.data,layer:a.layer,placement:a.placement});const o=MAP.assets[MAP.assets.length-1];if(!o||o.userData.assetName!==a.name)continue;o.position.fromArray(a.position);o.rotation.set(...a.rotation);o.scale.fromArray(a.scale);o.visible=a.visible!==false;o.userData.billboard=!!a.billboard;o.userData.placementMode=a.placement||'rail';o.userData.railDepthOffset=a.railDepthOffset||0;if(a.kind==='image'){mapCurveImage(o,a.curvature??0);mapFeather(o,a.feather??8)}o.userData.railAngle=a.railAngle}MAP.selected=null;mapLayerState();parent.postMessage({hancockRestoredWork:{objects:restoredObjects,expected:(saved.objects||[]).length,assets:MAP.assets.length,expectedAssets:(saved.assets||[]).length}},'*')})().catch(err=>mapSay('Restore failed: '+err.message));
+ (async()=>{for(const a of saved.assets||[]){if(a.kind==='monument')await mapBuildMonument({data:a.data});else await mapImportAsset({kind:a.kind,name:a.name,data:a.data,layer:a.layer,placement:a.placement});const o=MAP.assets[MAP.assets.length-1];if(!o||o.userData.assetName!==a.name)continue;o.position.fromArray(a.position);o.rotation.set(...a.rotation);o.scale.fromArray(a.scale);o.visible=a.visible!==false;o.userData.billboard=!!a.billboard;o.userData.placementMode=a.placement||'rail';o.userData.railDepthOffset=a.railDepthOffset||0;if(a.kind==='image'){mapCurveImage(o,a.curvature??0);mapFeather(o,['midground','innerMidground'].includes(o.userData.assetLayer)?0:(a.feather??8))}o.userData.railAngle=a.railAngle}MAP.selected=null;mapLayerState();parent.postMessage({hancockRestoredWork:{objects:restoredObjects,expected:(saved.objects||[]).length,assets:MAP.assets.length,expectedAssets:(saved.assets||[]).length}},'*')})().catch(err=>mapSay('Restore failed: '+err.message));
 }
 if(e.data?.hancockExport){parent.postMessage({hancockExportData:{format:'hancock-editor-v1',track:ACTIVE_TRACK,points:points.map(p=>p.slice()),width:WIDTH,changes:MAP.changes,assets:MAP.assets.map(a=>({id:a.userData.assetId,kind:a.userData.assetType,name:a.userData.assetName,data:a.userData.assetData,position:a.position.toArray(),rotation:a.rotation.toArray().slice(0,3),scale:a.scale.toArray(),layer:a.userData.assetLayer||'midground',placement:a.userData.placementMode||'rail',visible:a.visible,distance:a.userData.layerDistance||0,railAngle:a.userData.railAngle??null,railRadius:a.userData.railRadius??null,billboard:!!a.userData.billboard,curvature:a.userData.curvature??0})),warning:'Road edits need game integration and scenery realignment'}},'*')}});
 
