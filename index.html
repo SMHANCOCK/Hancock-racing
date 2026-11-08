@@ -1133,6 +1133,21 @@ if(SUNSET_FINAL_PREVIEW){
    catch(e){failures++;console.warn('Sunset asset failed',asset.name,e)}
    banner.textContent='SUNSET FINAL — '+loaded+'/'+assets.length+' scenery objects';
   }));
+  // Upload the exported PNG textures to the GPU before allowing the race
+  // countdown to progress. Two per animation frame avoids a single long stall.
+  const textures=[];
+  scenery.traverse(object=>{
+   if(!object.isMesh)return;
+   const materials=Array.isArray(object.material)?object.material:[object.material];
+   for(const material of materials)if(material?.map&&!textures.includes(material.map))textures.push(material.map);
+  });
+  banner.textContent='SUNSET RACEWAY — preparing scenery…';
+  for(let i=0;i<textures.length;i+=2){
+   await new Promise(resolve=>requestAnimationFrame(resolve));
+   for(const texture of textures.slice(i,i+2))renderer.initTexture(texture);
+  }
+  // Allow the renderer a frame to finish preparation before the scenery appears.
+  await new Promise(resolve=>requestAnimationFrame(resolve));
   scenery.visible=true;
   sunsetSceneryReady=true;
   banner.remove();
