@@ -1004,7 +1004,7 @@ function captureRealCircuitPreview(){
 
 function chooseTrack(id){if(!['sunset','london','cliff'].includes(id))return;sessionStorage.setItem('driftRushTrack',id);if(id===ACTIVE_TRACK){sessionStorage.removeItem('hancockPendingMode');requestLandscape();start(selectedMenuMode);return}const target=new URL(location.href);target.searchParams.set('track',id);target.searchParams.set('autostart',selectedMenuMode);target.searchParams.set('v','149');sessionStorage.removeItem('hancockPendingMode');location.assign(target.href)}
 let selectedMenuMode='race';
-function showMapMenu(m){selectedMenuMode=m;document.getElementById('menuHome').hidden=true;document.getElementById('mapMenu').hidden=false;document.getElementById('modeHeading').textContent=m==='race'?'GRAND PRIX':'TIME TRIAL'}
+function showMapMenu(m){try{window.parent.postMessage({hancockPreloadSunset:true},location.origin)}catch(e){}selectedMenuMode=m;document.getElementById('menuHome').hidden=true;document.getElementById('mapMenu').hidden=false;document.getElementById('modeHeading').textContent=m==='race'?'GRAND PRIX':'TIME TRIAL'}
 function showHomeMenu(){document.getElementById('mapMenu').hidden=true;document.getElementById('menuHome').hidden=false}
 document.getElementById('mapBack').onclick=showHomeMenu;
 document.getElementById('chooseSunset').onclick=()=>chooseTrack('sunset');
@@ -1118,13 +1118,14 @@ if(SUNSET_FINAL_PREVIEW){
  };
  (async()=>{
   let loaded=0,failures=0;
-  const parts=await Promise.all([1,2,3].map(async part=>{
-   const response=await fetch('sunset-raceway-part-'+part+'.json');
-   if(!response.ok)throw Error('Map part '+part+' returned '+response.status);
-   const data=await response.json();
-   if(data.track!=='sunset'||Number(data.part)!==part||Number(data.totalParts)!==3)throw Error('Invalid map part '+part);
-   return data;
-  }));
+  const parts=await (window.parent!==window&&typeof window.parent.hancockPreloadSunsetParts==='function'
+   ?window.parent.hancockPreloadSunsetParts()
+   :Promise.all([1,2,3].map(async part=>{
+     const response=await fetch('sunset-raceway-part-'+part+'.json');
+     if(!response.ok)throw Error('Map part '+part+' returned '+response.status);
+     return response.json();
+    })));
+  for(let i=0;i<parts.length;i++)if(parts[i].track!=='sunset'||Number(parts[i].part)!==i+1||Number(parts[i].totalParts)!==3)throw Error('Invalid Sunset scenery part '+(i+1));
   // Decode assets concurrently, but only reveal the complete scene together.
   scenery.visible=false;
   const assets=parts.flatMap(part=>part.assets);
