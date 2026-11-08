@@ -1088,7 +1088,22 @@ if(SUNSET_FINAL_PREVIEW){
    p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();
   }
   group.add(mesh);
-  group.position.fromArray(a.position);if(SUNSET_FINAL_PREVIEW&&a.layer==='foreground'&&group.position.y>12)group.position.y=0;group.rotation.set(...a.rotation);group.scale.fromArray(a.scale);
+  group.position.fromArray(a.position);
+  // Separate the two curved panorama rails in world space to avoid near-coplanar
+  // depth-buffer fighting while retaining every image's angular alignment and scale.
+  if(a.layer==='background'||a.layer==='midground'){
+   const centerX=points.reduce((sum,p)=>sum+p[0],0)/points.length;
+   const centerZ=points.reduce((sum,p)=>sum+p[1],0)/points.length;
+   const dx=group.position.x-centerX,dz=group.position.z-centerZ;
+   const distance=Math.hypot(dx,dz);
+   if(distance>1){
+    const outward=a.layer==='background'?8:1.5;
+    group.position.x+=dx/distance*outward;
+    group.position.z+=dz/distance*outward;
+   }
+  }
+  if(SUNSET_FINAL_PREVIEW&&a.layer==='foreground'&&group.position.y>12)group.position.y=0;
+  group.rotation.set(...a.rotation);group.scale.fromArray(a.scale);
   group.visible=a.visible!==false;group.name='Export: '+a.name;scenery.add(group);
  };
  const addMonument=async a=>{
