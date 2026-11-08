@@ -1565,6 +1565,42 @@ if(SUNSET_FINAL_PREVIEW){
   m.count=n;m.instanceMatrix.needsUpdate=true;m.frustumCulled=false;m.castShadow=false;m.receiveShadow=true;scene.add(m);
  }
 }
+// Sunset Final terrain dressing: procedural grass/sandy-soil texture and low raised banks.
+// Decorative only: road geometry and driving collisions are unchanged.
+if(SUNSET_FINAL_PREVIEW){
+ const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;
+ const ctx=canvas.getContext('2d');ctx.fillStyle='#6d9650';ctx.fillRect(0,0,256,256);
+ let seed=4192;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+ for(let i=0;i<10500;i++){
+  const x=random()*256,y=random()*256,r=.35+random()*2.5;
+  ctx.fillStyle=random()<.23?'rgba(196,166,92,.20)':random()<.5?'rgba(39,87,39,.17)':'rgba(173,195,103,.22)';
+  ctx.fillRect(x,y,r*2,r);
+ }
+ const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
+ tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(22,22);
+ tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+ // Replace only the Sunset Final base grass material.
+ grass.map=tex;grass.color.set(0xffffff);grass.needsUpdate=true;
+ const bankMat=new THREE.MeshStandardMaterial({color:0xa8894e,roughness:1,flatShading:true});
+ const bankTop=new THREE.MeshStandardMaterial({color:0x7b9851,roughness:1,flatShading:true});
+ const moundGeo=new THREE.SphereGeometry(1,9,5,0,Math.PI*2,0,Math.PI/2);
+ const banks=new THREE.InstancedMesh(moundGeo,bankMat,70);
+ const tops=new THREE.InstancedMesh(moundGeo,bankTop,70);
+ const dummy=new THREE.Object3D();let count=0;
+ for(let i=0;i<70;i++){
+  const f=frame((i*.061803+.014)%1);
+  const side=i%2?1:-1;
+  const p=f.p.clone().addScaledVector(f.normal,side*(WIDTH/2+35+(i%5)*7));
+  // Check against all road sections, not only the nearest spline parameter.
+  let safe=true;
+  for(let j=0;j<140;j++){const q=frame(j/140).p;if(Math.hypot(q.x-p.x,q.z-p.z)<WIDTH/2+22){safe=false;break}}
+  if(!safe)continue;
+  const width=5+(i%4)*2,height=.65+(i%3)*.35;
+  dummy.position.set(p.x,-.38,p.z);dummy.rotation.set(0,i*1.8,0);dummy.scale.set(width,height,width*.68);dummy.updateMatrix();banks.setMatrixAt(count,dummy.matrix);
+  dummy.position.y=-.27;dummy.scale.set(width*.86,height*.91,width*.58);dummy.updateMatrix();tops.setMatrixAt(count++,dummy.matrix);
+ }
+ for(const m of [banks,tops]){m.count=count;m.instanceMatrix.needsUpdate=true;m.frustumCulled=false;scene.add(m)}
+}
 // Sunset Circuit has no visual or physical safety barriers.
 
 // Billboard footprints are reserved before scenery is generated.
