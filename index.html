@@ -1616,6 +1616,38 @@ if(SUNSET_FINAL_PREVIEW){
  }
  for(const m of [banks,tops]){m.count=count;m.instanceMatrix.needsUpdate=true;m.frustumCulled=false;scene.add(m)}
 }
+// Low, sunlit atmospheric haze at the outer grass / mid-ground transition.
+// Local translucent ground-hugging ribbons, not scene-wide fog.
+if(SUNSET_FINAL_PREVIEW){
+ const center=new THREE.Vector3();
+ for(const p of points){center.x+=p[0];center.z+=p[1]}
+ center.multiplyScalar(1/points.length);
+ let extent=0;
+ for(const p of points)extent=Math.max(extent,Math.hypot(p[0]-center.x,p[1]-center.z));
+ const radius=extent+54,segments=192;
+ const c=document.createElement('canvas');c.width=128;c.height=64;
+ const ctx=c.getContext('2d');
+ const gradient=ctx.createLinearGradient(0,0,0,64);
+ gradient.addColorStop(0,'rgba(255,215,146,0)');
+ gradient.addColorStop(.24,'rgba(255,213,148,.07)');
+ gradient.addColorStop(.58,'rgba(255,219,166,.23)');
+ gradient.addColorStop(1,'rgba(255,221,168,0)');
+ ctx.fillStyle=gradient;ctx.fillRect(0,0,128,64);
+ const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+ const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide,fog:false,opacity:.65});
+ const vertices=[],uv=[],indices=[];
+ for(let i=0;i<=segments;i++){
+  const angle=i/segments*Math.PI*2,x=center.x+Math.sin(angle)*radius,z=center.z+Math.cos(angle)*radius;
+  vertices.push(x,.15,z,x,11,z);
+  uv.push(i/segments*12,1,i/segments*12,0);
+  if(i<segments){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2)}
+ }
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+ geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+ geometry.setIndex(indices);geometry.computeVertexNormals();
+ const haze=new THREE.Mesh(geometry,mat);haze.frustumCulled=false;haze.renderOrder=2;haze.name='Sunset outer grass golden haze';scene.add(haze);
+}
 // Sunset Circuit has no visual or physical safety barriers.
 
 // Billboard footprints are reserved before scenery is generated.
