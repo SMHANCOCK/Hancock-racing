@@ -1105,7 +1105,7 @@ if(SUNSET_FINAL_PREVIEW){
    const response=await fetch('sunset-raceway-part-'+part+'.json');
    if(!response.ok)throw Error('Map part '+part+' returned '+response.status);
    const data=await response.json();
-   if(data.track!=='sunset'||data.part!==part||data.totalParts!==3)throw Error('Invalid map part '+part);
+   if(data.track!=='sunset'||Number(data.part)!==part||Number(data.totalParts)!==3)throw Error('Invalid map part '+part);
    for(const asset of data.assets){
     try{if(asset.kind==='image')await addImage(asset);else if(asset.kind==='monument')await addMonument(asset);loaded++}
     catch(e){failures++;console.warn('Sunset asset failed',asset.name,e)}
