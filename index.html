@@ -1133,6 +1133,45 @@ if(SUNSET_FINAL_PREVIEW){
    catch(e){failures++;console.warn('Sunset asset failed',asset.name,e)}
    banner.textContent='SUNSET FINAL — '+loaded+'/'+assets.length+' scenery objects';
   }));
+  // Rebuild the mid-ground as one mathematically continuous 360-degree panorama.
+  // Every image shares a single circular radius, and adjacent curved mesh edges
+  // meet exactly: no per-image radial offsets, gaps or overlapping angular spans.
+  const mids=assets.filter(a=>a.kind==='image'&&a.layer==='midground'&&a.visible!==false)
+   .map(a=>({a,group:scenery.children.find(g=>g.name==='Export: '+a.name)}))
+   .filter(item=>item.group);
+  if(mids.length>1){
+   const centerX=points.reduce((sum,p)=>sum+p[0],0)/points.length;
+   const centerZ=points.reduce((sum,p)=>sum+p[1],0)/points.length;
+   const angleOf=item=>Number.isFinite(Number(item.a.railAngle))&&item.a.railAngle!==null
+    ?((Number(item.a.railAngle)%360)+360)%360
+    :((Math.atan2(item.group.position.x-centerX,item.group.position.z-centerZ)*180/Math.PI)%360+360)%360;
+   mids.sort((a,b)=>angleOf(a)-angleOf(b));
+   const radius=mids.reduce((sum,item)=>sum+Math.hypot(item.group.position.x-centerX,item.group.position.z-centerZ),0)/mids.length;
+   const widths=mids.map(item=>{
+    const mesh=item.group.children.find(c=>c.isMesh);
+    return mesh.geometry.parameters.width*Math.abs(item.group.scale.x);
+   });
+   const totalWidth=widths.reduce((a,b)=>a+b,0);
+   let edge=(angleOf(mids[0])-180*widths[0]/totalWidth)*Math.PI/180;
+   for(let i=0;i<mids.length;i++){
+    const {group}=mids[i],mesh=group.children.find(c=>c.isMesh);
+    const span=2*Math.PI*widths[i]/totalWidth,angle=edge+span/2;
+    group.position.x=centerX+Math.sin(angle)*radius;
+    group.position.z=centerZ+Math.cos(angle)*radius;
+    group.rotation.y=angle+Math.PI;
+    const localRadius=radius/Math.max(.001,Math.abs(group.scale.x));
+    const geometry=new THREE.PlaneGeometry(mesh.geometry.parameters.width,mesh.geometry.parameters.height,64,1);
+    const positions=geometry.attributes.position;
+    for(let j=0;j<positions.count;j++){
+     const theta=(positions.getX(j)/mesh.geometry.parameters.width)*span;
+     positions.setX(j,localRadius*Math.sin(theta));
+     positions.setZ(j,localRadius*(1-Math.cos(theta)));
+    }
+    positions.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingSphere();
+    mesh.geometry.dispose();mesh.geometry=geometry;
+    edge+=span;
+   }
+  }
   scenery.visible=true;
   banner.textContent='SUNSET FINAL — '+loaded+' objects'+(failures?' ('+failures+' failed)':'');
   setTimeout(()=>banner.remove(),7000);
