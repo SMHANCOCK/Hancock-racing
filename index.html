@@ -1097,7 +1097,7 @@ if(SUNSET_FINAL_PREVIEW){
    const dx=group.position.x-centerX,dz=group.position.z-centerZ;
    const distance=Math.hypot(dx,dz);
    if(distance>1){
-    const outward=a.layer==='background'?8:1.5;
+    const outward=a.layer==='background'?12:1.5;
     group.position.x+=dx/distance*outward;
     group.position.z+=dz/distance*outward;
    }
