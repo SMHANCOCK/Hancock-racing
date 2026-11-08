@@ -741,7 +741,7 @@ function mapRender(){
  // Preserve natural 3D occlusion: mid-ground PNGs must pass the depth test
  // against terrain, trees, rocks and monuments. Keep frustum culling disabled
  // separately so the curved planes do not blink out during camera turns.
- for(const asset of MAP.assets){if(asset.userData.assetType==='image'&&['midground','innerMidground'].includes(asset.userData.assetLayer)){asset.traverse(child=>{if(child.isMesh){child.renderOrder=0;if(child.material.depthTest!==true||child.material.depthWrite!==false){child.material.depthTest=true;child.material.depthWrite=false;child.material.needsUpdate=true}}})}}
+ for(const asset of MAP.assets){if(asset.userData.assetType==='image'&&['midground','innerMidground'].includes(asset.userData.assetLayer)){asset.traverse(child=>{if(child.isMesh){child.renderOrder=0;const mat=child.material;if(mat.depthTest!==true||mat.depthWrite!==true||mat.alphaTest!==0.08){mat.depthTest=true;mat.depthWrite=true;mat.alphaTest=0.08;mat.needsUpdate=true}}})}}
  // Mid-ground panoramas are fixed curved scenery, never camera-facing sprites.
  for(const asset of MAP.assets){if(asset.userData.assetType==='image'&&asset.userData.placementMode!=='free'&&['midground','innerMidground'].includes(asset.userData.assetLayer)){asset.userData.billboard=false;if(asset.userData.curvature!==75)mapCurveImage(asset,75)}}
  const now=performance.now(),dt=Math.min(.05,(now-MAP.last)/1000);MAP.last=now;
