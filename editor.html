@@ -480,7 +480,7 @@ async function mapImportAsset(asset){
    sprite.position.y=h/2;group.add(sprite);
   }
   mapRegisterAsset(group,asset.kind,asset.name,asset.data);
-  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:75,foreground:0,innerBackground:100,innerMidground:75,innerForeground:20}[group.userData.assetLayer]??0);mapFeather(group,8)}
+  if(asset.kind==='image'){mapCurveImage(group,{background:100,midground:100,foreground:0,innerBackground:100,innerMidground:100,innerForeground:20}[group.userData.assetLayer]??0);mapFeather(group,8)}
  }catch(err){mapSay('Import failed: '+(err.message||err))}
 }
 async function mapBuildMonument(asset){
@@ -696,7 +696,7 @@ if(e.data?.hancockExport){parent.postMessage({hancockExportData:{format:'hancock
 // Draw a non-interactive yellow selection outline, updated as objects move or scale.
 let mapSelectionOutline=null,mapSelectionTarget=null;
 function mapUpdateSelectionOutline(){
- const target=MAP.selected&&MAP.selected.parent&&MAP.selected.visible?MAP.selected:null;
+ const target=MAP.selected&&MAP.selected.parent&&MAP.selected.visible&&!(['midground','innerMidground'].includes(MAP.selected.userData.assetLayer)&&MAP.selected.userData.assetType==='image')?MAP.selected:null;
  if(target!==mapSelectionTarget){
   if(mapSelectionOutline){scene.remove(mapSelectionOutline);mapSelectionOutline.geometry.dispose();mapSelectionOutline.material.dispose();mapSelectionOutline=null}
   mapSelectionTarget=target;
@@ -746,7 +746,7 @@ function mapRender(){
  // separately so the curved planes do not blink out during camera turns.
  for(const asset of MAP.assets){if(asset.userData.assetType==='image'&&['midground','innerMidground'].includes(asset.userData.assetLayer)){asset.traverse(child=>{if(child.isMesh){child.renderOrder=0;const mat=child.material;if(mat.depthTest!==true||mat.depthWrite!==true||mat.alphaTest!==0.08){mat.depthTest=true;mat.depthWrite=true;mat.alphaTest=0.08;mat.needsUpdate=true}}})}}
  // Mid-ground panoramas are fixed curved scenery, never camera-facing sprites.
- for(const asset of MAP.assets){if(asset.userData.assetType==='image'&&asset.userData.placementMode!=='free'&&['midground','innerMidground'].includes(asset.userData.assetLayer)){asset.userData.billboard=false;if(asset.userData.curvature!==75)mapCurveImage(asset,75)}}
+ for(const asset of MAP.assets){if(asset.userData.assetType==='image'&&asset.userData.placementMode!=='free'&&['midground','innerMidground'].includes(asset.userData.assetLayer)){asset.userData.billboard=false;if(asset.userData.curvature!==100)mapCurveImage(asset,100)}}
  const now=performance.now(),dt=Math.min(.05,(now-MAP.last)/1000);MAP.last=now;
 for(const asset of MAP.assets){
  if(asset.visible&&asset.userData.billboard&&asset.userData.assetType==='image'&&['foreground','innerForeground'].includes(asset.userData.assetLayer)){
