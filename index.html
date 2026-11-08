@@ -1086,7 +1086,7 @@ if(SUNSET_FINAL_PREVIEW){
    p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();
   }
   group.add(mesh);
-  group.position.fromArray(a.position);group.rotation.set(...a.rotation);group.scale.fromArray(a.scale);
+  group.position.fromArray(a.position);if(SUNSET_FINAL_PREVIEW&&a.layer==='foreground'&&group.position.y>12)group.position.y=0;group.rotation.set(...a.rotation);group.scale.fromArray(a.scale);
   group.visible=a.visible!==false;group.name='Export: '+a.name;scenery.add(group);
  };
  const addMonument=async a=>{
@@ -1552,7 +1552,7 @@ function clearOfBillboards(x,z,radius=0){
     return true;
   }
   // Fixed slots ensure each race retains the same billboard positions.
-  const slots=SUNSET_FINAL_PREVIEW?[]:ACTIVE_TRACK==='london'?[.045,.135,.245,.345,.455,.565,.68,.79,.89,.965]:ACTIVE_TRACK==='cliff'?[.065,.225,.545,.705,.865]:[.035,.155,.275,.395,.515,.635,.755,.875];
+  const slots=ACTIVE_TRACK==='london'?[.045,.135,.245,.345,.455,.565,.68,.79,.89,.965]:ACTIVE_TRACK==='cliff'?[.065,.225,.545,.705,.865]:[.035,.155,.275,.395,.515,.635,.755,.875];
   let made=0;
   for(let i=0;i<slots.length;i++){
     const f=frame(slots[i]),side=ACTIVE_TRACK==='cliff'?1:i%2===0?1:-1;
