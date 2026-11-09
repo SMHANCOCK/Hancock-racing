@@ -1,0 +1,114 @@
+{
+  "id": "frostbite-mountain",
+  "name": "Frostbite Mountain",
+  "status": "prototype",
+  "units": "game-world-units",
+  "road": {
+    "surface": "asphalt",
+    "snowShoulders": true
+  },
+  "controlPoints": [
+    {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "bank": 0,
+      "width": 16
+    },
+    {
+      "x": 70,
+      "y": 5,
+      "z": -25,
+      "bank": 4,
+      "width": 16
+    },
+    {
+      "x": 125,
+      "y": 18,
+      "z": -90,
+      "bank": 9,
+      "width": 17
+    },
+    {
+      "x": 105,
+      "y": 38,
+      "z": -170,
+      "bank": 13,
+      "width": 18
+    },
+    {
+      "x": 35,
+      "y": 52,
+      "z": -220,
+      "bank": -8,
+      "width": 18
+    },
+    {
+      "x": -55,
+      "y": 45,
+      "z": -190,
+      "bank": -12,
+      "width": 17
+    },
+    {
+      "x": -120,
+      "y": 26,
+      "z": -110,
+      "bank": 10,
+      "width": 17
+    },
+    {
+      "x": -110,
+      "y": 12,
+      "z": -20,
+      "bank": 6,
+      "width": 17
+    },
+    {
+      "x": -60,
+      "y": 2,
+      "z": 50,
+      "bank": -6,
+      "width": 16
+    }
+  ],
+  "boostPads": [
+    {
+      "x": 90,
+      "z": -53,
+      "radius": 6,
+      "strength": 1.28,
+      "duration": 1.2
+    },
+    {
+      "x": 15,
+      "z": -217,
+      "radius": 6,
+      "strength": 1.28,
+      "duration": 1.2
+    },
+    {
+      "x": -95,
+      "z": 8,
+      "radius": 6,
+      "strength": 1.28,
+      "duration": 1.2
+    }
+  ],
+  "shortcut": {
+    "entry": {
+      "x": 102,
+      "y": 38,
+      "z": -171
+    },
+    "landing": {
+      "x": -35,
+      "y": 46,
+      "z": -194
+    },
+    "minimumSpeed": 38,
+    "requiresDriftBoost": true,
+    "fallReset": true
+  },
+  "notes": "Geometry and jump endpoints are initial tuning values, not tested in the live physics engine."
+}
